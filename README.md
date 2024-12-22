@@ -51,7 +51,7 @@
 * cmake -G Ninja ..
 * cmake --build . -v
 
-<p><b>Fow Windows:</b></p>
+<p><b>For Windows:</b></p>
 
 * Open Win/NetCoap.sln and change CoapBroker, CoapPublisher, CoapSubscriber projects to point to OpenSSL library under Linker -> Additional Library Directories
 * Build solution
