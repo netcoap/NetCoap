@@ -65,3 +65,5 @@
 * Execute 1st: CoapBroker
 * Execute 2nd: CoapSubscriber
 * Execute 3rd: CoapPublisher
+
+<p><b>NetCoap has been successfully tested under Windows and Linux 64 bits</b></p>
