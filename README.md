@@ -1,13 +1,13 @@
 
-<h2>NetCoap is a C++20 with modules implementation for DTLS Secure COAP Publish-Subscribe Architecture for the Constrained Application Protocol (COAP). COAP Pub/Sub is described in draft-ietf-core-coap-pubsub-15.</h2>
+<h2>NetCoap is a C++20 with modules implementation for the secure Constrained Application Protocol (COAP) Publish/Subscribe. COAP Pub/Sub is described in draft-ietf-core-coap-pubsub-15. NetCoap is also hosted in https://netcoap.net</h2>
 
 <h3>The following RFCs are supported:</h3>
 
-1. <b>draft-ietf-core-coap-pubsub-15: A publish-subscribe architecture for the Constrained Application Protocol (CoAP)</b>
-2. <b>RFC7252: The Constrained Application Protocol (CoAP)</b>
-3. <b>RFC7641: Observing Resources in the Constrained Application Protocol (CoAP)</b>
-4. <b>RFC7959: Block-Wise Transfers in the Constrained Application Protocol (CoAP)</b>
-5. <b>RFC8949: Concise Binary Object Representation (CBOR)</b>
+1. [<b>draft-ietf-core-coap-pubsub-15: A publish-subscribe architecture for the Constrained Application Protocol (CoAP)</b>](https://www.ietf.org/archive/id/draft-ietf-core-coap-pubsub-15.txt)
+2. [<b>RFC7252: The Constrained Application Protocol (CoAP)</b>](https://www.rfc-editor.org/rfc/rfc7252)
+3. [<b>RFC7641: Observing Resources in the Constrained Application Protocol (CoAP)</b>](https://www.rfc-editor.org/rfc/rfc7641)
+4. [<b>RFC7959: Block-Wise Transfers in the Constrained Application Protocol (CoAP)</b>](https://www.rfc-editor.org/rfc/rfc7959)
+5. [<b>RFC8949: Concise Binary Object Representation (CBOR)</b>](https://www.rfc-editor.org/rfc/rfc8949.html)
 
 <h3>Installation</h3>
 
