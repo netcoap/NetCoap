@@ -28,19 +28,19 @@
 
   <p><b>Go to directory Certificate and do the following commands:</b></p>
 
-	openssl genpkey -algorithm RSA -out ca_private_key.pem -pkeyopt rsa_keygen_bits:4096
-	openssl req -x509 -new -key ca_private_key.pem -days 3650 -out ca_certificate.pem
+	openssl genpkey -algorithm RSA -out caPrivateKey.pem -pkeyopt rsa_keygen_bits:4096
+	openssl req -x509 -new -key caPrivateKey.pem -days 3650 -out caCertificate.pem
 
-	openssl genpkey -algorithm RSA -out server_private_key.pem -pkeyopt rsa_keygen_bits:2048
-	openssl req -new -key server_private_key.pem -out server_csr.pem
-	openssl x509 -req -in server_csr.pem -CA ca_certificate.pem -CAkey ca_private_key.pem -CAcreateserial -out server_certificate.pem -days 365
+	openssl genpkey -algorithm RSA -out serverPrivateKey.pem -pkeyopt rsa_keygen_bits:2048
+	openssl req -new -key serverPrivateKey.pem -out serverCsr.pem
+	openssl x509 -req -in serverCsr.pem -CA caCertificate.pem -CAkey caPrivateKey.pem -CAcreateserial -out serverCertificate.pem -days 365
 
-	openssl genpkey -algorithm RSA -out client_private_key.pem -pkeyopt rsa_keygen_bits:2048
-	openssl req -new -key client_private_key.pem -out client_csr.pem
-	openssl x509 -req -in client_csr.pem -CA ca_certificate.pem -CAkey ca_private_key.pem -CAcreateserial -out client_certificate.pem -days 365
+	openssl genpkey -algorithm RSA -out clientPrivateKey.pem -pkeyopt rsa_keygen_bits:2048
+	openssl req -new -key clientPrivateKey.pem -out clientCsr.pem
+	openssl x509 -req -in clientCsr.pem -CA caCertificate.pem -CAkey caPrivateKey.pem -CAcreateserial -out clientCertificate.pem -days 365
 
-	openssl verify -CAfile ca_certificate.pem server_certificate.pem
-	openssl verify -CAfile ca_certificate.pem client_certificate.pem
+	openssl verify -CAfile caCertificate.pem serverCertificate.pem
+	openssl verify -CAfile caCertificate.pem clientCertificate.pem
 
 <h3>Building</h3>
 
