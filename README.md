@@ -1,5 +1,5 @@
 
-<h2>NetCoap is a C++20 with modules implementation for the secure UDP Constrained Application Protocol (COAP) Publish/Subscribe. COAP Pub/Sub is described in draft-ietf-core-coap-pubsub-15. NetCoap is also hosted in https://netcoap.net</h2>
+<h2>NetCoap is a C++20 with modules implementation for the secure UDP Constrained Application Protocol (COAP) Publish/Subscribe. COAP Pub/Sub is described in the draft-ietf-core-coap-pubsub-15. NetCoap is also hosted in https://netcoap.net</h2>
 
 <h3>The following RFCs are supported:</h3>
 
