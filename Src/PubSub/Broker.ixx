@@ -95,7 +95,7 @@ namespace netcoap {
 							static_cast<size_t>(Message::CONTENT_FORMAT::APP_LINK_FORMAT));
 						resp->setPayload(names);
 
-						sess->sessionSend(resp);
+						sess->sessionSend(req, resp);
 					}
 					else if (query.find(TopicCfgDataResource::RT_CORE_PS_CONF) != string::npos) {
 
@@ -117,7 +117,7 @@ namespace netcoap {
 							static_cast<size_t>(Message::CONTENT_FORMAT::APP_LINK_FORMAT));
 						resp->setPayload(names);
 
-						sess->sessionSend(resp);
+						sess->sessionSend(req, resp);
 					}
 				}
 			};
@@ -156,7 +156,7 @@ namespace netcoap {
 
 							if (m_resourceCbMap.find(uriPath) == m_resourceCbMap.end()) {
 								shared_ptr<Message> errMsg = reqMsg->buildErrResponse(Message::CODE::FORBIDDEN, "");
-								sess->sessionSend(errMsg);
+								sess->sessionSend(reqMsg, errMsg);
 								
 								continue;
 							}
@@ -189,7 +189,7 @@ namespace netcoap {
 							if (!topicData) {
 								
 								shared_ptr<Message> errMsg = reqMsg->buildErrResponse(Message::CODE::FORBIDDEN, "");
-								sess->sessionSend(errMsg);
+								sess->sessionSend(reqMsg, errMsg);
 
 								continue;
 							}
@@ -227,7 +227,7 @@ namespace netcoap {
 							jsonPropTree.toCborStr(*cbor);
 							respMsg->setPayload(cbor);
 
-							sess->sessionSend(respMsg);
+							sess->sessionSend(reqMsg, respMsg);
 						}
 						else if (reqMsg->getCode() == Message::CODE::OP_DELETE) {
 
@@ -250,7 +250,7 @@ namespace netcoap {
 									shared_ptr<Message> respMsg = reqMsg->buildAckResponse();
 									respMsg->setCode(Message::CODE::DELETED);
 
-									sess->sessionSend(respMsg);
+									sess->sessionSend(reqMsg, respMsg);
 
 									break;
 								}
@@ -258,12 +258,12 @@ namespace netcoap {
 
 							if (!deleted) {
 								shared_ptr<Message> errMsg = reqMsg->buildErrResponse(Message::CODE::NOT_FOUND, "");
-								sess->sessionSend(errMsg);
+								sess->sessionSend(reqMsg, errMsg);
 							}
 						}
 						else {
 							shared_ptr<Message> errMsg = reqMsg->buildErrResponse(Message::CODE::NOT_IMPLEMENTED, "");
-							sess->sessionSend(errMsg);
+							sess->sessionSend(reqMsg, errMsg);
 						}
 					}
 

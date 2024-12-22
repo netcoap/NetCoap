@@ -47,7 +47,7 @@ namespace netcoap {
 							static_cast<size_t>(Message::CONTENT_FORMAT::APP_LINK_FORMAT));
 						resp->setPayload(names);
 
-						sess->sessionSend(resp);
+						sess->sessionSend(req, resp);
 					}
 					else if (query.find(TopicCfgDataResource::RT_CORE_PS_DATA) != string::npos) {
 
@@ -61,11 +61,11 @@ namespace netcoap {
 							static_cast<size_t>(Message::CONTENT_FORMAT::APP_LINK_FORMAT));
 						resp->setPayload(names);
 
-						sess->sessionSend(resp);
+						sess->sessionSend(req, resp);
 					}
 					else {
 						shared_ptr<Message> errMsg = req->buildErrResponse(Message::CODE::NOT_IMPLEMENTED, "");
-						sess->sessionSend(errMsg);
+						sess->sessionSend(req, errMsg);
 					}
 				}
 				else if (req->getCode() == Message::CODE::OP_FETCH) {
@@ -100,11 +100,11 @@ namespace netcoap {
 						static_cast<size_t>(Message::CONTENT_FORMAT::APP_LINK_FORMAT));
 					resp->setPayload(names);
 
-					sess->sessionSend(resp);
+					sess->sessionSend(req, resp);
 				}
 				else {
 					shared_ptr<Message> errMsg = req->buildErrResponse(Message::CODE::NOT_IMPLEMENTED, "");
-					sess->sessionSend(errMsg);
+					sess->sessionSend(req, errMsg);
 				}
 			};
 

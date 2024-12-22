@@ -61,8 +61,13 @@ namespace netcoap {
 				return m_clientAddr;
 			}
 
-			void sessionSend(shared_ptr<Message> msg) {
-				m_outpQ.push(msg);
+			void sessionSend(shared_ptr<Message> req, shared_ptr<Message> resp) {
+
+				ReqRespMsg reqRespMsg;
+				reqRespMsg.req = req;
+				reqRespMsg.resp = resp;
+
+				m_outpQ.push(reqRespMsg);
 			}
 
 			CoroPoolTask run() {
@@ -97,15 +102,15 @@ namespace netcoap {
 							continue;
 						}
 
-						//shared_ptr<Message> cacheMsg = m_cacheMsgs.duplicateMsg(msg);
-						//if (cacheMsg != nullptr) {
-						//	buf = make_shared<IoBuf>();
-						//	cacheMsg->serialize(buf->buf);
-						//	buf->clientAddr = cacheMsg->getClientAddr();
-						//	m_io.write(buf, nullptr);
+						shared_ptr<Message> cacheMsg = m_cacheMsgs.duplicateMsg(msg);
+						if (cacheMsg != nullptr) {
+							buf = make_shared<IoBuf>();
+							cacheMsg->serialize(buf->buf);
+							buf->clientAddr = cacheMsg->getClientAddr();
+							m_io.write(buf, nullptr);
 
-						//	continue;
-						//}
+							continue;
+						}
 
 						shared_ptr<Message> ack = m_block2Xfer.serverRcv(msg);
 						if (ack) {
@@ -120,22 +125,28 @@ namespace netcoap {
 					}
 
 					if (m_nstart > 0) {
-						shared_ptr<Message> msg;
-						if (m_outpQ.pop(msg)) {
-							procRespMsg(msg);
+						ReqRespMsg reqRespMsg;
+						if (m_outpQ.pop(reqRespMsg)) {
+							procRespMsg(reqRespMsg);
 						}
 					}
 					else {
 						retryXmit();
 					}
 
-					//m_cacheMsgs.clean();
+					m_cacheMsgs.clean();
 				}
 
 				co_return;
 			}
 
 		private:
+
+			class ReqRespMsg {
+			public:
+				shared_ptr<Message> req = nullptr;
+				shared_ptr<Message> resp = nullptr;
+			};
 
 			class ResponseWait {
 			public:
@@ -173,26 +184,26 @@ namespace netcoap {
 				}
 			}
 
-			void procRespMsg(shared_ptr<Message> msg) {
+			void procRespMsg(ReqRespMsg reqRespMsg) {
 
 				shared_ptr<IoBuf> buf;
 
-				//m_cacheMsgs.updateResponse(msg);
+				m_cacheMsgs.updateResponse(reqRespMsg.req, reqRespMsg.resp);
 
-				msg = m_block2Xfer.serverXfer(msg);
+				reqRespMsg.resp = m_block2Xfer.serverXfer(reqRespMsg.resp);
 
-				if (msg->getType() != Message::TYPE::CONFIRM) {
+				if (reqRespMsg.resp->getType() != Message::TYPE::CONFIRM) {
 					buf = make_shared<IoBuf>();
-					msg->serialize(buf->buf);
-					buf->clientAddr = msg->getClientAddr();
+					reqRespMsg.resp->serialize(buf->buf);
+					buf->clientAddr = reqRespMsg.resp->getClientAddr();
 					m_io.write(buf, nullptr);
 
 					return;
 				}
 
 				buf = make_shared<IoBuf>();
-				msg->serialize(buf->buf);
-				buf->clientAddr = msg->getClientAddr();
+				reqRespMsg.resp->serialize(buf->buf);
+				buf->clientAddr = reqRespMsg.resp->getClientAddr();
 				m_io.write(buf, nullptr);
 
 				ResponseWait respWait;
@@ -200,7 +211,7 @@ namespace netcoap {
 				respWait.nxtTimeWaitDur_sec = ACK_TIMEOUT_sec;
 				respWait.buf = buf;
 
-				m_respWaitMap[msg->getToken()] = respWait;
+				m_respWaitMap[reqRespMsg.resp->getToken()] = respWait;
 
 				m_nstart--;
 			}
@@ -208,7 +219,7 @@ namespace netcoap {
 			JsonPropTree& m_cfg;
 			IoSession& m_io;
 			IpAddress m_clientAddr;
-			SyncQ<shared_ptr<Message>> m_outpQ;
+			SyncQ<ReqRespMsg> m_outpQ;
 			SyncQ<shared_ptr<IoBuf>>* m_inpQ;
 			uint32_t m_totalProcTime_us = 0;
 			BrokerIf* m_broker;

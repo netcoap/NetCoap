@@ -57,7 +57,7 @@ namespace netcoap {
 						}
 
 						shared_ptr<Message> ack = req->buildAckResponse();
-						sess->sessionSend(ack);
+						sess->sessionSend(req, ack);
 					}
 					else {
 						shared_ptr<Message> ack = req->buildAckResponse();
@@ -66,7 +66,7 @@ namespace netcoap {
 							ack->setPayload(m_lastPayload);
 						}
 
-						sess->sessionSend(ack);
+						sess->sessionSend(req, ack);
 					}
 				}
 				else if (req->getCode() == Message::CODE::OP_PUT) {
@@ -94,7 +94,7 @@ namespace netcoap {
 							m_lastPayload = m_intermPayload;
 						}
 
-						sess->sessionSend(resp);
+						sess->sessionSend(req, resp);
 
 						uint16_t msgId = Message::getNxtMsgId();
 						uint32_t nxtSeq = getNxtSeq();
@@ -114,7 +114,7 @@ namespace netcoap {
 							resp->addOptionBlock(Option::NUMBER::BLOCK2, block);
 							resp->setPayload(req->getPayload());
 
-							sess.sess->sessionSend(resp);
+							sess.sess->sessionSend(req, resp);
 						}
 
 						return;
@@ -122,7 +122,7 @@ namespace netcoap {
 
 					if (req->getType() == Message::TYPE::CONFIRM) {
 						shared_ptr<Message> ack = req->buildAckResponse();
-						sess->sessionSend(ack);
+						sess->sessionSend(req, ack);
 					}
 
 					if (req->getPayload() != nullptr) {
@@ -145,12 +145,12 @@ namespace netcoap {
 						resp->addOptionNum(Option::NUMBER::OBSERVE, nxtSeq);
 						resp->setPayload(req->getPayload());
 
-						sess.sess->sessionSend(resp);
+						sess.sess->sessionSend(req, resp);
 					}
 				}
 				else {
 					shared_ptr<Message> errMsg = req->buildErrResponse(Message::CODE::NOT_IMPLEMENTED, "");
-					sess->sessionSend(errMsg);
+					sess->sessionSend(req, errMsg);
 				}
 			}
 

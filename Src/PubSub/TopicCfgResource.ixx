@@ -382,7 +382,7 @@ namespace netcoap {
 
 					resp->setPayload(payload);
 
-					sess->sessionSend(resp);
+					sess->sessionSend(req, resp);
 				}
 				else if (req->getCode() == Message::CODE::OP_FETCH) {
 
@@ -430,7 +430,7 @@ namespace netcoap {
 
 					resp->setPayload(payload);
 
-					sess->sessionSend(resp);
+					sess->sessionSend(req, resp);
 				}
 				else if ((req->getCode() == Message::CODE::OP_PUT) ||
 						(req->getCode() == Message::CODE::OP_IPATCH)) {
@@ -489,11 +489,11 @@ namespace netcoap {
 
 					resp->setPayload(payload);
 
-					sess->sessionSend(resp);
+					sess->sessionSend(req, resp);
 				}
 				else {
 					shared_ptr<Message> errMsg = req->buildErrResponse(Message::CODE::NOT_IMPLEMENTED, "");
-					sess->sessionSend(errMsg);
+					sess->sessionSend(req, errMsg);
 				}
 			}
 

@@ -309,7 +309,7 @@ namespace netcoap {
 				return Helper::generateUniqueToken8();
 			}
 
-			bool serialize(string& str) {
+			bool serializeHeader(string& str) {
 
 				uint8_t verTypeTokLen = (VERSION << 6) |
 					(static_cast<uint8_t>(m_type) << 4) | (m_token.length() & 0x0F);
@@ -327,6 +327,13 @@ namespace netcoap {
 					opt->serialize(str, prevOptNumb);
 					prevOptNumb = static_cast<uint16_t>(opt->getNumber());
 				}
+
+				return true;
+			}
+
+			bool serialize(string& str) {
+
+				serializeHeader(str);
 
 				if (m_payload != nullptr) {
 					str.push_back(PAYLOAD_MARKER);

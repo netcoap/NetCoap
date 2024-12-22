@@ -33,72 +33,68 @@ namespace netcoap {
 
 			shared_ptr<Message> duplicateMsg(shared_ptr<Message> msg) {
 
-				CacheMessage cacheRespMsg;
-
 				uint8_t code = static_cast<uint8_t>(msg->getCode());
 				if (!(code & 0xE0)) { // Msg is a request
 
-					auto iterMsg = m_msgRespTokenMap.find(msg->getToken());
-					if (iterMsg != m_msgRespTokenMap.end()) { // Return cache response
-						cacheRespMsg = iterMsg->second;
+					string header;
+					msg->serializeHeader(header);
+
+					auto iterMsg = m_msgRespMsgMap.find(header);
+					if (iterMsg != m_msgRespMsgMap.end()) { // Return cache response
+						return iterMsg->second;
 					}
 					else {
-						cacheRespMsg.respMsg = nullptr;
+						m_msgRespMsgMap.emplace(header, nullptr);
 					}
 				}
 
-				return cacheRespMsg.respMsg;
+				return nullptr;
 			}
 
-			void updateResponse(shared_ptr<Message> msg) {
+			void updateResponse(shared_ptr<Message> req, shared_ptr<Message> resp) {
 
-				uint8_t code = static_cast<uint8_t>(msg->getCode());
+				uint8_t code = static_cast<uint8_t>(resp->getCode());
 				if ((code & 0xE0) != 0) { // Msg is not a request; cache only responses
 
-					if (msg->getCode() == Message::CODE::EMPTY) {
+					if (resp->getCode() == Message::CODE::EMPTY) {
 						return;
 					}
 
-					CacheMessage cacheRespMsg;
 					time_point tpLastCk = high_resolution_clock::now();
 					seconds lastCk_sec = duration_cast<seconds>(tpLastCk.time_since_epoch());
-					cacheRespMsg.respMsg = msg;
-					m_msgRespTokenMap[msg->getToken()] = cacheRespMsg;
-					m_msgTimeMap.insert({ lastCk_sec.count(), msg->getToken() });
+					string reqHeader;
+					req->serializeHeader(reqHeader);
+					m_msgRespMsgMap[reqHeader] = resp;
+					m_msgTimeMap.insert({ lastCk_sec.count(), reqHeader });
 				}
 			}
 
 			void clean() {
 				
-				unordered_map<string, time_t> removeMsgIdMap;
+				unordered_map<string, time_t> removeMsgMap;
 
 				time_point<high_resolution_clock> now = high_resolution_clock::now();
 				seconds now_sec = duration_cast<seconds>(now.time_since_epoch());
-				for (auto& [lastCk_sec, msgToken] : m_msgTimeMap) {
+				for (auto& [lastCk_sec, reqHeader] : m_msgTimeMap) {
 					time_t durCache_sec = now_sec.count() - lastCk_sec;
 					if (durCache_sec >= m_cacheTimeout_sec) {
-						removeMsgIdMap[msgToken] = lastCk_sec;
+						removeMsgMap[reqHeader] = lastCk_sec;
 					}
 					else {
 						break;
 					}
 				}
 
-				for (auto& [msgToken, lastCk_sec] : removeMsgIdMap) {
-					m_msgRespTokenMap.erase(msgToken);
+				for (auto& [reqHeader, lastCk_sec] : removeMsgMap) {
+					m_msgRespMsgMap.erase(reqHeader);
 					m_msgTimeMap.erase(lastCk_sec);
 				}
 			}
 
 		private:
 
-			class CacheMessage {
-			public:
-				shared_ptr<Message> respMsg = nullptr;
-			};
-
 			uint8_t m_cacheTimeout_sec = 0;
-			unordered_map<string, CacheMessage> m_msgRespTokenMap;
+			unordered_map<string, shared_ptr<Message>> m_msgRespMsgMap;
 			multimap<time_t, string> m_msgTimeMap;
 		};
 	}
