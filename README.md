@@ -16,7 +16,7 @@
 
   <p><b>For Linux:</b></p>
 
-* sudo apt install clang # Version 18. Note that Gnu CC does not support fully support module definitions
+* sudo apt install clang # Version 18. Note that latest Gnu gcc/g++ v14 does not fully support module definitions
 * sudo apt install cmake # Version 3.31.3
 * sudo apt install ninja # Version 1.11.1
 
