@@ -1,5 +1,5 @@
 
-<h2>NetCoap is a C++20 with modules implementation for the secure UDP Constrained Application Protocol (COAP) Publish/Subscribe. COAP Pub/Sub is described in the draft-ietf-core-coap-pubsub-15. NetCoap is also hosted in https://netcoap.net</h2>
+<h2>NetCoap is a C++20 with modules implementation for the secure UDP Constrained Application Protocol (CoAP) Publish/Subscribe. CoAP Pub/Sub is described in the draft-ietf-core-coap-pubsub-15. NetCoap is also hosted in https://netcoap.net</h2>
 
 <h3>The following RFCs are supported:</h3>
 
@@ -16,7 +16,7 @@
 
   <p><b>For Linux:</b></p>
 
-* sudo apt install clang # Version 18
+* sudo apt install clang # Version 18. Note that Gnu CC does not support fully support module definition
 * sudo apt install cmake # Version 3.31.3
 * sudo apt install ninja # Version 1.11.1
 
@@ -41,6 +41,11 @@
 
 	openssl verify -CAfile caCertificate.pem serverCertificate.pem
 	openssl verify -CAfile caCertificate.pem clientCertificate.pem
+
+<h3>Configure NetCoap</h3>
+
+* Edit CoapBroker.cpp, CoapSubscriber.cpp, CoapPublisher.cpp to change g_NetCoapCONFIG_FILE to point to NetCoap.cfg configuration file
+* Make sure configuration directory path specified in the NetCoap.cfg points to the correct certificate files
 
 <h3>Building</h3>
 
