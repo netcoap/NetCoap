@@ -9,6 +9,8 @@
 4. [<b>RFC7959: Block-Wise Transfers in the Constrained Application Protocol (CoAP)</b>](https://www.rfc-editor.org/rfc/rfc7959)
 5. [<b>RFC8949: Concise Binary Object Representation (CBOR)</b>](https://www.rfc-editor.org/rfc/rfc8949.html)
 
+<h3>NetCoap has been successfully tested under Arm7 32-bit with embedded OpenSTLinux and Windows and Linux 64-bit OS</h3>
+
 <h3>Installation</h3>
 
 <p><b>For Windows and Linux:</b></p>
@@ -70,5 +72,3 @@
 * Execute 1st: CoapBroker
 * Execute 2nd: CoapSubscriber
 * Execute 3rd: CoapPublisher
-
-<p><b>NetCoap has been successfully tested under Windows and Linux 64 bits</b></p>
