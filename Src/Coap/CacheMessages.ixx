@@ -53,6 +53,10 @@ namespace netcoap {
 
 			void updateResponse(shared_ptr<Message> req, shared_ptr<Message> resp) {
 
+				if (req == nullptr) { // No request such as ping
+					return;
+				}
+
 				uint8_t code = static_cast<uint8_t>(resp->getCode());
 				if ((code & 0xE0) != 0) { // Msg is not a request; cache only responses
 

@@ -139,6 +139,7 @@
     <ClCompile Include="..\..\Src\PubSub\CollectionResource.ixx" />
     <ClCompile Include="..\..\Src\PubSub\PubSub.ixx" />
     <ClCompile Include="..\..\Src\PubSub\Session.ixx" />
+    <ClCompile Include="..\..\Src\PubSub\SessionMessage.ixx" />
     <ClCompile Include="..\..\Src\PubSub\TopicCfgResource.ixx" />
     <ClCompile Include="..\..\Src\PubSub\TopicDataResource.ixx" />
   </ItemGroup>

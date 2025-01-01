@@ -45,6 +45,9 @@
     <ClCompile Include="..\..\Src\Coap\Block2Xfer.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Src\Coap\Ping.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\Src\Coap\Coap.h">

@@ -75,6 +75,10 @@ namespace netcoap {
 				return false;
 			};
 
+			virtual bool disconnect(IpAddress ipAddr) {
+				return true;
+			}
+
 			virtual int read(shared_ptr<IoBuf>& buf, void* ctx) {
 				return -1;
 			}

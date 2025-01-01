@@ -34,10 +34,26 @@ using namespace netcoap::toolbox;
 namespace netcoap {
 	namespace coap {
 
-        export class CoapMessage {
+        export class NetCoapMessage {
+		public:
+
+			NetCoapMessage() {}
+			virtual ~NetCoapMessage() {}
+
+			IpAddress getClientAddr() {
+				return m_clientAddr;
+			}
+
+			void setClientAddr(IpAddress ipAddr) {
+				m_clientAddr = ipAddr;
+			}
+
+		private:
+
+			IpAddress m_clientAddr;
         };
 
-		export class Message : public CoapMessage, public Serialize {
+		export class Message : public NetCoapMessage, public Serialize {
 		public:
 
 			enum class TYPE { CONFIRM = 0, NON_CONFIRM = 1, ACK = 2, RESET = 3 };
@@ -260,6 +276,29 @@ namespace netcoap {
 				addOption(std::move(opt));
 			}
 
+			static shared_ptr<Message> buildPing() {
+				shared_ptr<Message> ping(new Message);
+
+				ping->setMsgId(getNxtMsgId());
+				ping->setToken("");
+				ping->setType(Message::TYPE::CONFIRM);
+				ping->setCode(Message::CODE::EMPTY);
+
+				return ping;
+			}
+
+			shared_ptr<Message> buildResetResponse() {
+				shared_ptr<Message> respMsg(new Message);
+
+				respMsg->setMsgId(getMsgId());
+				respMsg->setToken("");
+				respMsg->setClientAddr(getClientAddr());
+				respMsg->setType(Message::TYPE::RESET);
+				respMsg->setCode(Message::CODE::EMPTY);
+
+				return respMsg;
+			}
+
 			shared_ptr<Message> buildAckResponse() {
 				shared_ptr<Message> respMsg(new Message);
 
@@ -397,14 +436,6 @@ namespace netcoap {
 				return true;
 			}
 
-			IpAddress getClientAddr() {
-				return m_clientAddr;
-			}
-
-			void setClientAddr(IpAddress ipAddr) {
-				m_clientAddr = ipAddr;
-			}
-
 		private:
 
 			static const uint8_t VERSION = 0x01;
@@ -415,8 +446,6 @@ namespace netcoap {
 			multimap<Option::NUMBER, unique_ptr<Option>> m_optList;
 			uint16_t m_msgId = 0;
 			shared_ptr<string> m_payload = nullptr;
-
-			IpAddress m_clientAddr;
 		};
 	}
 }

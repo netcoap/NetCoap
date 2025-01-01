@@ -14,6 +14,8 @@ module;
 #include <memory>
 #include <mutex>
 
+#include "Toolbox/Toolbox.h"
+
 export module PubSub:Broker;
 
 import Coap;
@@ -23,6 +25,7 @@ import :TopicCfgResource;
 import :TopicDataResource;
 import :Session;
 import :BrokerIf;
+import :SessionMessage;
 
 using namespace std;
 using namespace netcoap::coap;
@@ -49,7 +52,7 @@ namespace netcoap {
 				m_threadPool.runTask(std::move(task));
 			}
 
-			void msgRcv(shared_ptr<Message> msg) {
+			void msgRcv(shared_ptr<NetCoapMessage> msg) {
 				m_msgRcvQ.push(msg);
 			}
 
@@ -122,6 +125,23 @@ namespace netcoap {
 				}
 			};
 
+			void handleSession(shared_ptr<SessionMessage> sessionMsg) {
+				Session* sess = m_sessionMap[sessionMsg->getClientAddr().toString()].get();
+
+				if (sessionMsg->getRequest() == SessionMessage::REQUEST::SESSION_EXIT) {
+
+					for (auto& [name, collectionResource] : m_collectionResourceMap) {
+						collectionResource->unsubscribe(sessionMsg->getClientAddr());
+					}
+
+					while (!sess->isStop()) {} // Should be immediate
+					m_sessionMap.erase(sessionMsg->getClientAddr().toString());
+					m_io.disconnect(sessionMsg->getClientAddr());
+
+					LIB_MSG_INFO("Client is down at {}", sessionMsg->getClientAddr().toString());
+				}
+			}
+
 			void run() {
 				
 				m_io.init(m_cfg);
@@ -142,9 +162,19 @@ namespace netcoap {
 						runSession(sessPtr);
 					}
 
-					shared_ptr<Message> reqMsg;
-					bool haveReqMsg = m_msgRcvQ.pop(reqMsg);
+					shared_ptr<NetCoapMessage> netCoapMsg;
+					bool haveReqMsg = m_msgRcvQ.pop(netCoapMsg);
 					if (haveReqMsg) {
+
+						shared_ptr<SessionMessage> sessionMsg = dynamic_pointer_cast<SessionMessage>(netCoapMsg);
+						if (sessionMsg) {
+							handleSession(sessionMsg);
+
+							continue;
+						}
+
+						shared_ptr<Message> reqMsg = dynamic_pointer_cast<Message>(netCoapMsg);
+
 						string uriPath = reqMsg->getOptionRepeatStr(Option::NUMBER::URI_PATH, Option::DELIM_PATH);
 						string uriQuery = reqMsg->getOptionRepeatStr(Option::NUMBER::URI_QUERY, Option::DELIM_QUERY);
 						Session* sess = m_sessionMap[reqMsg->getClientAddr().toString()].get();
@@ -278,7 +308,7 @@ namespace netcoap {
 			unordered_map<string, unique_ptr<CollectionResource>> m_collectionResourceMap;
 			unordered_map<string, TopicCfgDataResource::ResourceCb> m_resourceCbMap;
 			unordered_map<string, unique_ptr<Session>> m_sessionMap;
-			SyncQ<shared_ptr<Message>> m_msgRcvQ;
+			SyncQ<shared_ptr<NetCoapMessage>> m_msgRcvQ;
 			mutex m_threadPoolmtx;
 			CoroPool m_threadPool{ (int)thread::hardware_concurrency() };
 		};

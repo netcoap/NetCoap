@@ -62,7 +62,7 @@ namespace netcoap {
 
 				m_io.init(m_cfg);
 
-				const uint8_t MAX_TRY_CONNECT = 3;
+				const uint8_t MAX_TRY_CONNECT = 1;
 				m_state = STATE::TRY_CONNECT; uint8_t nConnect = 0;
 
 				while ((nConnect < MAX_TRY_CONNECT) && !m_io.connect(nullptr)) {
@@ -230,6 +230,11 @@ namespace netcoap {
 
 			bool subscribe(string uriDataPath, ResponseCb cb) {
 
+				if (m_subsTokenMap.find(uriDataPath) != m_subsTokenMap.end()) {
+					LIB_MSG_WARN("Already subscribed to {}", uriDataPath);
+					return false;
+				}
+
 				shared_ptr<Message> req(new Message());
 
 				req->setType(Message::TYPE::CONFIRM);
@@ -240,6 +245,7 @@ namespace netcoap {
 				TokenCbDat cbDat(cb, TokenCbDat::CALLBACK_TYPE::RECURRENT, req);
 
 				string token = submitReq(cbDat);
+				m_subsTokenMap[uriDataPath] = token;
 
 				return true;
 			}
@@ -257,23 +263,30 @@ namespace netcoap {
 
 				submitReq(cbDat);
 
-				return true;
-			}
+				if (m_subsTokenMap.find(uriDataPath) != m_subsTokenMap.end()) {
+					lock_guard<mutex> lock(m_mtxToken);
+					m_tokenToCbMap.erase(m_subsTokenMap[uriDataPath]);
 
-			bool getLatestData(string uriDataPath, ResponseCb cb) {
-
-				shared_ptr<Message> req(new Message());
-
-				req->setType(Message::TYPE::CONFIRM);
-				req->setCode(Message::CODE::OP_GET);
-				req->addOptionRepeatStr(Option::NUMBER::URI_PATH, uriDataPath, Option::DELIM_PATH);
-
-				TokenCbDat cbDat(cb, TokenCbDat::CALLBACK_TYPE::ONCE, req);
-
-				submitReq(cbDat);
+					m_subsTokenMap.erase(uriDataPath);
+				}
 
 				return true;
 			}
+
+			//bool getLatestData(string uriDataPath, ResponseCb cb) {
+
+			//	shared_ptr<Message> req(new Message());
+
+			//	req->setType(Message::TYPE::CONFIRM);
+			//	req->setCode(Message::CODE::OP_GET);
+			//	req->addOptionRepeatStr(Option::NUMBER::URI_PATH, uriDataPath, Option::DELIM_PATH);
+
+			//	TokenCbDat cbDat(cb, TokenCbDat::CALLBACK_TYPE::ONCE, req);
+
+			//	submitReq(cbDat);
+
+			//	return true;
+			//}
 
 			bool removeTopicCfgData(string uriCfgDataPath) {
 
@@ -371,6 +384,17 @@ namespace netcoap {
 				size_t idx = 0;
 				resp->deserialize(buf->buf, idx);
 
+				if ((resp->getCode() == Message::CODE::EMPTY) &&
+					(resp->getType() == Message::TYPE::CONFIRM)) { // Ping message
+
+					shared_ptr<Message> pong = resp->buildResetResponse();
+					shared_ptr<IoBuf> buf(new IoBuf());
+					pong->serialize(buf->buf);
+					m_io.write(buf, nullptr);
+
+					return;
+				}
+
 				if (m_respWaitMap.find(resp->getToken()) != m_respWaitMap.end()) {
 					m_respWaitMap.erase(resp->getToken());
 					m_nstart++;
@@ -408,7 +432,7 @@ namespace netcoap {
 				TokenCbDat cbDat;
 				{
 					lock_guard<mutex> lock(m_mtxToken);
-					cbDat = m_tokenToCb[resp->getToken()];
+					cbDat = m_tokenToCbMap[resp->getToken()];
 				}
 
 				if ((cbDat.cbType != TokenCbDat::CALLBACK_TYPE::NONE) &&
@@ -425,7 +449,7 @@ namespace netcoap {
 
 					if (cbDat.cbType != TokenCbDat::CALLBACK_TYPE::RECURRENT) {
 						lock_guard<mutex> lock(m_mtxToken);
-						m_tokenToCb.erase(resp->getToken());
+						m_tokenToCbMap.erase(resp->getToken());
 					}
 				}
 			}
@@ -517,7 +541,7 @@ namespace netcoap {
 
 				{
 					lock_guard<mutex> lock(m_mtxToken);
-					m_tokenToCb[token] = cbDat;
+					m_tokenToCbMap[token] = cbDat;
 				}
 
 				m_reqQ.push(cbDat.msg);
@@ -545,7 +569,8 @@ namespace netcoap {
 			SyncQ<shared_ptr<Message>> m_reqQ;
 			unordered_map<string, ResponseWait> m_respWaitMap;
 			mutex m_mtxToken;
-			unordered_map<string, TokenCbDat> m_tokenToCb;
+			unordered_map<string, TokenCbDat> m_tokenToCbMap;
+			unordered_map<string, string> m_subsTokenMap;
 			jthread m_clientThread;
 			Block1Xfer m_block1Xfer;
 			Block2Xfer m_block2Xfer;

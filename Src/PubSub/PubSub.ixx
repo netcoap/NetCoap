@@ -16,4 +16,4 @@ export import :Session;
 export import :CollectionResource;
 export import :TopicCfgResource;
 export import :TopicDataResource;
-
+export import :SessionMessage;

@@ -8,28 +8,35 @@
 module;
 
 #include <iostream>
-#include <memory>
+#include <string>
 
-export module PubSub:BrokerIf;
+export module PubSub:SessionMessage;
 
 import Coap;
 
 using namespace std;
+
 using namespace netcoap::coap;
 
 namespace netcoap {
 	namespace pubsub {
 
-		export class Session;
-
-		export class BrokerIf {
+		export class SessionMessage : public NetCoapMessage {
 		public:
 
-			BrokerIf() {}
-			virtual ~BrokerIf() {}
+			enum class REQUEST {SESSION_EXIT};
 
-			virtual void runSession(Session* sess) = 0;
-			virtual void msgRcv(shared_ptr<NetCoapMessage> msg) = 0;
+			inline void setRequest(REQUEST req) {
+				m_req = req;
+			}
+
+			inline REQUEST getRequest() {
+				return m_req;
+			}
+
+		private:
+
+			REQUEST m_req;
 		};
 	}
 }

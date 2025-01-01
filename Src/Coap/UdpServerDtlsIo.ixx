@@ -73,8 +73,7 @@ namespace netcoap {
 			UdpServerDtlsIo(const UdpServerDtlsIo&) = delete;
 			UdpServerDtlsIo& operator=(const UdpServerDtlsIo&) = delete;
 
-			UdpServerDtlsIo() : m_tstBuf(COAP_MAX_RX_SIZE, '\0') {
-			}
+			UdpServerDtlsIo() {}
 
 			virtual ~UdpServerDtlsIo() {
 				if (m_sslCtx) {
@@ -136,6 +135,12 @@ namespace netcoap {
 						m_outpQ.pushFront(buf);
 					}
 				}
+			}
+
+			bool disconnect(IpAddress ipAddr) {
+				m_ioContextMap.erase(ipAddr.toString());
+
+				return true;
 			}
 
 			InpOutpResponse* getData() {
@@ -512,7 +517,6 @@ namespace netcoap {
 			SocketMonitor m_mon{ chrono::microseconds(100) };
 			SSL_CTX* m_sslCtx = nullptr;
 			unique_ptr<Socket> m_sock = nullptr;
-			string m_tstBuf;
 			SyncQ<shared_ptr<IoBuf>> m_outpQ;
 			ServerIoResponse m_ioResp;
 			unordered_map<string, unique_ptr<IoContext>> m_ioContextMap;

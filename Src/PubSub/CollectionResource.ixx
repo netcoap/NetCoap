@@ -214,6 +214,17 @@ namespace netcoap {
 				return names;
 			}
 
+			void unsubscribe(IpAddress ipAddr) {
+
+				for (auto& [name, cfgDataResrc] : m_topicCfgDataResourceMap) {
+
+					if (TopicDataResource::RT_CORE_PS_DATA.find(cfgDataResrc->getResourceType()) != string::npos) {
+						TopicDataResource* dataResrc = dynamic_cast<TopicDataResource*>(cfgDataResrc.get());
+						dataResrc->unsubscribe(ipAddr);
+					}
+				}
+			}
+
 		private:
 
 			unordered_map<string, unique_ptr<TopicCfgDataResource>> m_topicCfgDataResourceMap;

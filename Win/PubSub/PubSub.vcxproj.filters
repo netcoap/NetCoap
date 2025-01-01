@@ -39,5 +39,8 @@
     <ClCompile Include="..\..\Src\PubSub\Session.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Src\PubSub\SessionMessage.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

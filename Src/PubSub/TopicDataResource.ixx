@@ -15,11 +15,13 @@ module;
 export module PubSub:TopicDataResource;
 
 import Coap;
+import Toolbox;
 import :Session;
 import :TopicCfgResource;
 
 using namespace std;
 using namespace netcoap::coap;
+using namespace netcoap::toolbox;
 
 namespace netcoap {
 	namespace pubsub {
@@ -37,6 +39,10 @@ namespace netcoap {
 
 			inline string getUriTopicCfgPath() const {
 				return m_uriTopicCfgPath;
+			}
+
+			void unsubscribe(IpAddress ipAddr) {
+				m_subsMap.erase(ipAddr.toString());
 			}
 
 			void handleCb(shared_ptr<Message> req, Session* sess) {
@@ -59,15 +65,15 @@ namespace netcoap {
 						shared_ptr<Message> ack = req->buildAckResponse();
 						sess->sessionSend(req, ack);
 					}
-					else {
-						shared_ptr<Message> ack = req->buildAckResponse();
-						if (m_lastPayload != nullptr) {
-							ack->setCode(Message::CODE::CONTENT);
-							ack->setPayload(m_lastPayload);
-						}
+					//else {
+					//	shared_ptr<Message> ack = req->buildAckResponse();
+					//	if (m_lastPayload != nullptr) {
+					//		ack->setCode(Message::CODE::CONTENT);
+					//		ack->setPayload(m_lastPayload);
+					//	}
 
-						sess->sessionSend(req, ack);
-					}
+					//	sess->sessionSend(req, ack);
+					//}
 				}
 				else if (req->getCode() == Message::CODE::OP_PUT) {
 
@@ -80,18 +86,18 @@ namespace netcoap {
 
 							resp->setCode(Message::CODE::CONTINUE);
 							
-							if (block.getNum() == 0) {
-								m_intermPayload = req->getPayload();
-							}
-							else {
-								m_intermPayload->reserve(m_intermPayload->size() + req->getPayload()->size());
-								m_intermPayload->append(*req->getPayload());
-							}
+							//if (block.getNum() == 0) {
+							//	m_intermPayload = req->getPayload();
+							//}
+							//else {
+							//	m_intermPayload->reserve(m_intermPayload->size() + req->getPayload()->size());
+							//	m_intermPayload->append(*req->getPayload());
+							//}
 						}
 						else {
 							resp->setCode(Message::CODE::CHANGED);
-							m_intermPayload->append(*req->getPayload());
-							m_lastPayload = m_intermPayload;
+							//m_intermPayload->append(*req->getPayload());
+							//m_lastPayload = m_intermPayload;
 						}
 
 						sess->sessionSend(req, resp);
@@ -125,9 +131,9 @@ namespace netcoap {
 						sess->sessionSend(req, ack);
 					}
 
-					if (req->getPayload() != nullptr) {
-						m_lastPayload = req->getPayload();
-					}
+					//if (req->getPayload() != nullptr) {
+					//	m_lastPayload = req->getPayload();
+					//}
 
 					uint16_t msgId = Message::getNxtMsgId();
 					uint32_t nxtSeq = getNxtSeq();
@@ -171,8 +177,8 @@ namespace netcoap {
 			uint32_t m_nxtSeq = 2;
 			string m_uriTopicCfgPath = "";
 			unordered_map<string, RespSession> m_subsMap;
-			shared_ptr<string> m_lastPayload = make_shared<string>();
-			shared_ptr<string> m_intermPayload = make_shared<string>();
+			//shared_ptr<string> m_lastPayload = make_shared<string>();
+			//shared_ptr<string> m_intermPayload = make_shared<string>();
 		};
 	}
 }

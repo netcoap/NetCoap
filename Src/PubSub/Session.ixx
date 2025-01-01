@@ -22,6 +22,7 @@ export module PubSub:Session;
 import Toolbox;
 import Coap;
 import :BrokerIf;
+import :SessionMessage;
 
 using namespace std;
 using namespace chrono;
@@ -48,14 +49,21 @@ namespace netcoap {
 				m_clientAddr = clientAddr;
 				
 				m_totalProcTime_us = m_cfg.get<int>("coapPs.serverSessionTotalProcTime_us");
+				m_ping.setKeepAlive(
+					m_cfg.get<int>("coap.keepAlive_sec")
+				);
 				m_nstart = NSTART;
-				m_cacheMsgs.setTimeout(CACHE_TIMEOUT_sec);
+				//m_cacheMsgs.setTimeout(CACHE_TIMEOUT_sec);
 			}
 
 			~Session() {}
 
 			Session(const Session&) = delete;
 			Session& operator=(const Session&) = delete;
+
+			inline bool isStop() {
+				return m_stop;
+			}
 
 			IpAddress getClientAddr() {
 				return m_clientAddr;
@@ -74,24 +82,28 @@ namespace netcoap {
 
 				time_point startProcTime = high_resolution_clock::now();;
 
-				while (true) {
+				while (!m_stop) {
 				
 					time_point now = high_resolution_clock::now();
 					duration durProcTime_us = duration_cast<microseconds>(now - startProcTime);
 					if (durProcTime_us.count() >= m_totalProcTime_us) {
 						m_broker->runSession(this);
-						break;
+
+						break; // Resume at later time
 					}
 
 					shared_ptr<IoBuf> buf;
 					if (m_inpQ->pop(buf)) {
+
+						m_ping.stampRcvMsg();
 
 						shared_ptr<Message> msg(new Message());
 						size_t idx = 0;
 						msg->deserialize(buf->buf, idx);
 						msg->setClientAddr(buf->clientAddr);
 
-						if (msg->getType() == Message::TYPE::ACK) {
+						if ((msg->getType() == Message::TYPE::RESET) ||
+							(msg->getType() == Message::TYPE::ACK)) {
 							if (m_respWaitMap.find(msg->getToken()) == m_respWaitMap.end()) {
 								continue; // Response is already processed and thus ignore duplicate response
 							}
@@ -102,15 +114,15 @@ namespace netcoap {
 							continue;
 						}
 
-						shared_ptr<Message> cacheMsg = m_cacheMsgs.duplicateMsg(msg);
-						if (cacheMsg != nullptr) {
-							buf = make_shared<IoBuf>();
-							cacheMsg->serialize(buf->buf);
-							buf->clientAddr = cacheMsg->getClientAddr();
-							m_io.write(buf, nullptr);
+						//shared_ptr<Message> cacheMsg = m_cacheMsgs.duplicateMsg(msg);
+						//if (cacheMsg != nullptr) {
+						//	buf = make_shared<IoBuf>();
+						//	cacheMsg->serialize(buf->buf);
+						//	buf->clientAddr = cacheMsg->getClientAddr();
+						//	m_io.write(buf, nullptr);
 
-							continue;
-						}
+						//	continue;
+						//}
 
 						shared_ptr<Message> ack = m_block2Xfer.serverRcv(msg);
 						if (ack) {
@@ -124,6 +136,26 @@ namespace netcoap {
 						}
 					}
 
+					if (m_ping.isTime4Ping()) {
+						shared_ptr<Message> ping = Message::buildPing();
+						ping->setClientAddr(getClientAddr());
+						ReqRespMsg reqRespMsg;
+						reqRespMsg.resp = ping;
+						m_outpQ.pushFront(reqRespMsg);
+					}
+
+					if (!m_ping.isClientAlive()) {
+						// NO ACK from CONFIRM or PING timeout
+
+						shared_ptr<SessionMessage> sessionMsg(new SessionMessage());
+						sessionMsg->setClientAddr(getClientAddr());
+						sessionMsg->setRequest(SessionMessage::REQUEST::SESSION_EXIT);
+						m_broker->msgRcv(sessionMsg);
+
+						m_stop = true;
+						continue;
+					}
+
 					if (m_nstart > 0) {
 						ReqRespMsg reqRespMsg;
 						if (m_outpQ.pop(reqRespMsg)) {
@@ -134,7 +166,7 @@ namespace netcoap {
 						retryXmit();
 					}
 
-					m_cacheMsgs.clean();
+					//m_cacheMsgs.clean();
 				}
 
 				co_return;
@@ -188,7 +220,7 @@ namespace netcoap {
 
 				shared_ptr<IoBuf> buf;
 
-				m_cacheMsgs.updateResponse(reqRespMsg.req, reqRespMsg.resp);
+				//m_cacheMsgs.updateResponse(reqRespMsg.req, reqRespMsg.resp);
 
 				reqRespMsg.resp = m_block2Xfer.serverXfer(reqRespMsg.resp);
 
@@ -225,8 +257,10 @@ namespace netcoap {
 			BrokerIf* m_broker;
 			unordered_map<string, ResponseWait> m_respWaitMap;
 			uint8_t m_nstart;
-			CacheMessages m_cacheMsgs;
+			//CacheMessages m_cacheMsgs;
 			Block2Xfer m_block2Xfer;
+			Ping m_ping;
+			bool m_stop = false;
 		};
 	}
 }
