@@ -55,6 +55,8 @@
 	
 * edit CMakeLists.txt in the top directory and change to point to OpenSSL library e.g: link_directories("~/Projects/OpenSSL/Dist-3.4.0/lib64")
 * Goto top directory and mkdir build; cd build
+* export CC=clang
+* export CXX=clang++
 * cmake -G Ninja ..
 * cmake --build . -v
 
