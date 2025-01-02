@@ -330,7 +330,9 @@ namespace netcoap {
 				SSL_CTX_set_session_cache_mode(m_sslCtx, SSL_SESS_CACHE_OFF);
 
 				// Set SSL context to require a client certificate and only request it once - SSL_VERIFY_FAIL_IF_NO_PEER_CERT
-				SSL_CTX_set_verify(m_sslCtx, SSL_VERIFY_PEER | SSL_VERIFY_CLIENT_ONCE, dtlsVerifyCb);
+				SSL_CTX_set_verify(m_sslCtx,
+					SSL_VERIFY_PEER | SSL_VERIFY_CLIENT_ONCE | SSL_VERIFY_FAIL_IF_NO_PEER_CERT,
+					dtlsVerifyCb);
 
 				// Enabling read ahead allows OpenSSL to read and buffer more data
 				// than it immediately needs for the current SSL/TLS record
@@ -343,20 +345,16 @@ namespace netcoap {
 				string serverCertificatePath = cfg.get<string>("coap.serverCertificate");
 				string serverPrivateKeyPath = cfg.get<string>("coap.serverPrivateKey");
 
-				FILE* fp = nullptr;
-				#ifdef _WIN32
-				fopen_s(&fp, caCertificatePath.c_str(), "r");
-				#else
-				fp = fopen(caCertificatePath.c_str(), "r");
-				#endif
-				if (!fp) {
+				BIO* bio = BIO_new_file(caCertificatePath.data(), "r");
+				if (!bio) {
 					LIB_MSG_ERR_THROW_EX("Unable to open file {}", caCertificatePath);
 				}
-				X509* caCert = PEM_read_X509(fp, NULL, NULL, NULL);
-				fclose(fp);
+				X509* caCert = PEM_read_bio_X509(bio, NULL, NULL, NULL);
+				BIO_free(bio);
 				if (!caCert) {
-					LIB_MSG_ERR_THROW_EX("Unable to perform PEM_read_X509 {}", caCertificatePath);
+					LIB_MSG_ERR_THROW_EX("Unable to load PEM_read_X509 {}", caCertificatePath);
 				}
+
 				if (!SSL_CTX_use_certificate_file(m_sslCtx, serverCertificatePath.c_str(), SSL_FILETYPE_PEM)) {
 					LIB_MSG_ERR_THROW_EX("Invalid certificate file {}", serverCertificatePath);
 				}
