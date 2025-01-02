@@ -61,6 +61,7 @@
 <p><b>For Windows:</b></p>
 
 * Open Win/NetCoap.sln and change CoapBroker, CoapPublisher, CoapSubscriber projects to point to OpenSSL library under Linker -> Additional Library Directories
+* Also change C++->General->Include Directories to point to OpenSSL include directory 
 * Build solution
 
 <h3>Execution</h3>
