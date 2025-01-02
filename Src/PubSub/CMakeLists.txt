@@ -9,7 +9,8 @@ target_sources(PubSub PUBLIC FILE_SET CXX_MODULES FILES
     BrokerIf.ixx
     CollectionResource.ixx  
     Session.ixx  
-    TopicDataResource.ixx)
+    TopicDataResource.ixx
+    SessionMessage.ixx)
 
 target_include_directories(PubSub PUBLIC
     ..

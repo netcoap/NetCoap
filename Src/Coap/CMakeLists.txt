@@ -11,7 +11,8 @@ target_sources(Coap PUBLIC FILE_SET CXX_MODULES FILES
     Block2Xfer.ixx
     Coap.ixx
     Message.ixx
-    UdpClientDtlsIo.ixx)
+    UdpClientDtlsIo.ixx
+    Ping.ixx)
 
 target_include_directories(Coap PUBLIC
     ..
