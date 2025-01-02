@@ -19,7 +19,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\OpenSSL\openssl-3.4.0\ms\applink.c" />
     <ClCompile Include="..\..\Src\Toolbox\CoroPool.ixx" />
     <ClCompile Include="..\..\Src\Toolbox\Helper.ixx" />
     <ClCompile Include="..\..\Src\Toolbox\JsonPropTree.ixx" />

@@ -42,7 +42,7 @@ using namespace netcoap::toolbox;
 using namespace netcoap::coap;
 using namespace netcoap::pubsub;
 
-string g_NetCoapCONFIG_FILE = "C:\\Projects\\NetCoap\\ConfigFile\\NetCoap.cfg"; //"../ConfigFile/NetCoap.cfg";
+string g_NetCoapCONFIG_FILE = "../ConfigFile/NetCoap.cfg";
 
 Client* g_client = nullptr;
 string g_cfgUriPath = "";
@@ -68,7 +68,7 @@ void tstPublish() {
 	string s = "0123456789abcdefghijklmnopqrstuvwxyz0123456789";
 
 	for (int i = 0; i < 10; i++) {
-		shared_ptr<string> data(new string(10070000, 0));
+		shared_ptr<string> data(new string(70000, 0));
 		Helper::syncOut() << i << " Publish data length: " << data->size() << "\n"; // << "; data: " << *data << "\n";
 		g_client->publish(g_dataUriPath, data, Message::CONTENT_FORMAT::TEXT_PLAIN, true);
 		reverse(s.begin(), s.end());
