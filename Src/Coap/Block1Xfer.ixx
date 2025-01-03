@@ -33,10 +33,6 @@ namespace netcoap {
 
 				if (msg->getPayload()) {
 
-					if (msg->getPayload()->size() > MAX_BLOCK_BYTES_XFER) {
-						LIB_MSG_ERR_THROW_EX("Error block1 too large");
-					}
-
 					if (msg->getPayload()->length() > MAX_BLOCK_SIZE) {
 						return clientBlockXfer(msg);
 					}

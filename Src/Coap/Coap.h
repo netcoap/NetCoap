@@ -27,3 +27,5 @@
 #define BLOCK_SZX										6
 #define MAX_BLOCK_BYTES_XFER							1073741824 // 2**20 * 1024
 
+#define IO_BUFFER_SIZE									4096
+#define IO_BUFFER_INCREMENTAL							1024
