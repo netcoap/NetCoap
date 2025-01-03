@@ -48,6 +48,55 @@ using namespace netcoap::toolbox;
 namespace netcoap {
 	namespace coap {
 
+		class Buffer {
+		public:
+
+			Buffer() : m_readBuf(IO_BUFFER_SIZE, 0) {}
+
+			size_t getTotalEle() {
+				return (m_tail - m_head);
+			}
+
+			void insert(char* s, size_t len) {
+
+				size_t totalEle = m_tail - m_head;
+				if ((totalEle + len) > m_readBuf.size()) {
+					size_t spaceNeeded = len - totalEle + 1;
+					if (spaceNeeded < IO_BUFFER_INCREMENTAL) {
+						spaceNeeded = IO_BUFFER_INCREMENTAL;
+					}
+					m_readBuf.reserve(spaceNeeded);
+				}
+
+				if ((m_readBuf.size() - m_tail) < len) {
+					memcpy(&m_readBuf[0], &m_readBuf[m_head], totalEle);
+					m_head = 0;
+					m_tail = totalEle;
+				}
+
+				memcpy(&m_readBuf[m_tail], s, len);
+				m_tail += len;
+			}
+
+			inline char* get(size_t &len) {
+				size_t totalEle = m_tail - m_head;
+				if (len > totalEle) {
+					len = totalEle;
+				}
+
+				size_t retFront = m_head;
+				m_head += len;
+
+				return &m_readBuf[retFront];
+			}
+
+		private:
+
+			string m_readBuf;
+			size_t m_head = 0;
+			size_t m_tail = 0;
+		};
+
 		export class IoContext {
 		public:
 			enum class CONNECTION_STATE { LISTEN, ACCEPT, COMPLETED };
@@ -64,7 +113,8 @@ namespace netcoap {
 			SSL* ssl = nullptr;
 			SyncQ<shared_ptr<IoBuf>> inpQ;
 			BIO_ADDR* bioAddr;
-			BIO* bioPair;
+			Buffer inpBuf;
+			IpAddress clientAddr;
 		};
 
 		export class UdpServerDtlsIo : public IoSession {
@@ -163,6 +213,7 @@ namespace netcoap {
 
 				int bytesRcv = recvfrom(m_sock->getSocket(), (char*)ioBuf->buf.data(), (int)ioBuf->buf.length(),
 					0, (struct sockaddr*)&clientAddr, &clientLen);
+
 				if (bytesRcv < 0) {
 					int errNo;
 #ifdef _WIN32
@@ -200,12 +251,9 @@ namespace netcoap {
 					ioContext = m_ioContextMap[key].get();
 				}
 
-				if (ioContext->ssl) {
-					int bytes_written = BIO_write(ioContext->bioPair, ioBuf->buf.data(), bytesRcv);
-					if (bytes_written <= 0) {
-						LIB_MSG_ERR("SSL != nullptr - BIO_write failed");
-					}
-				}
+				ioContext->clientAddr = clientAddr;
+				ioContext->inpBuf.insert(ioBuf->buf.data(), bytesRcv);
+
 				switch (ioContext->connectionState) {
 
 					case IoContext::CONNECTION_STATE::LISTEN:
@@ -215,25 +263,16 @@ namespace netcoap {
 								if (!ssl) {
 									LIB_MSG_ERR_THROW_EX("Unable to get new client with SSL_new");
 								}
-								
-								BIO* bioPair, *rbio;
-								if (BIO_new_bio_pair(&bioPair, 0, &rbio, 0) <= 0) {
-									fprintf(stderr, "Failed to create BIO pair\n");
-								}
 
+								BIO* rbio = BIO_new(m_methUdpRcv);
 								BIO* wbio = BIO_new_dgram((int)m_sock->getSocket(), BIO_NOCLOSE);
+								BIO_set_data(rbio, ioContext);
 
 								SSL_set_bio(ssl, rbio, wbio);
 
 								ioContext->ssl = ssl;
-								ioContext->bioPair = bioPair;
 
 								ioContext->bioAddr = BIO_ADDR_new();
-
-								int bytes_written = BIO_write(ioContext->bioPair, ioBuf->buf.data(), bytesRcv);
-								if (bytes_written <= 0) {
-									LIB_MSG_ERR("Err SSL new - BIO_write failed");
-								}
 
 								if (BIO_dgram_set_peer(SSL_get_wbio(ioContext->ssl), (struct sockaddr*)&clientAddr) <= 0) {
 									LIB_MSG_ERR("Failed to set peer address");
@@ -247,7 +286,8 @@ namespace netcoap {
 							else if (ret < 0) {
 								ret = SSL_get_error(ioContext->ssl, ret);
 								if (ret != SSL_ERROR_WANT_READ && ret != SSL_ERROR_WANT_WRITE) {
-									LIB_MSG_WARN("Error during DTLSv1_Listen, drop connection to {}", clientAddr.toString());
+									LIB_MSG_WARN("Error during DTLSv1_Listen, drop connection to {} with err {}",
+										clientAddr.toString(), ret);
 									m_ioContextMap.erase(key);
 								}
 							}
@@ -374,6 +414,10 @@ namespace netcoap {
 				int serverPort = cfg.get<int>("coap.serverPort");
 				IpAddress ipAddress(serverAddress, serverPort);
 
+				m_methUdpRcv = BIO_meth_new(BIO_TYPE_DGRAM, "NetCoapUdp");
+				BIO_meth_set_read(m_methUdpRcv, udpRcv);
+				BIO_meth_set_ctrl(m_methUdpRcv, udpBioCtrl);
+
 				m_sock = make_unique<Socket>(ipAddress.getFamily(), Socket::SocketType::UDP);
 				m_sock->bind(ipAddress);
 				m_sock->setNonBlocking();
@@ -382,6 +426,50 @@ namespace netcoap {
 			}
 
 		private:
+
+			static long udpBioCtrl(BIO* bio, int cmd, long num, void* ptr) {
+				IoContext* ioContext = (IoContext*)BIO_get_data(bio);
+
+				switch (cmd) {
+
+				case BIO_CTRL_DGRAM_GET_PEER:
+					if (ptr) {
+						memcpy(ptr, &ioContext->clientAddr, sizeof(IpAddress));
+
+						return 1;
+					}
+
+					return 0;
+
+				case BIO_CTRL_DGRAM_SET_NEXT_TIMEOUT:
+					return 1;
+
+				default:
+					LIB_MSG_WARN("Not support udpBioCtrl cmd: {}", cmd);
+					return 0;
+				}
+			}
+
+			static int udpRcv(BIO* bio, char* buf, int len) {
+				IoContext* ioContext = (IoContext*)BIO_get_data(bio);
+				if (!ioContext) {
+					return -1;
+				}
+
+				size_t cpDataLen = len;
+				char* inpBufPtr = ioContext->inpBuf.get(cpDataLen);
+				if (cpDataLen > 0) {
+					memcpy(buf, inpBufPtr, cpDataLen);
+
+					return cpDataLen;
+				}
+				else {
+					BIO_set_retry_read(bio);
+					return 0;
+				}
+
+				return 0;
+			}
 
 			static int verifyCert(X509* cert, X509* caCert) {
 
@@ -518,6 +606,7 @@ namespace netcoap {
 			SyncQ<shared_ptr<IoBuf>> m_outpQ;
 			ServerIoResponse m_ioResp;
 			unordered_map<string, unique_ptr<IoContext>> m_ioContextMap;
+			BIO_METHOD* m_methUdpRcv;
 		};
 	}
 }
