@@ -343,6 +343,50 @@ namespace netcoap {
 				return &m_ioResp;
 			}
 
+			static long udpBioCtrl(BIO* bio, int cmd, long num, void* ptr) {
+				IoContext* ioContext = (IoContext*) BIO_get_data(bio);
+
+				switch (cmd) {
+
+					case BIO_CTRL_DGRAM_GET_PEER:
+						if (ptr) {
+							memcpy(ptr, &ioContext->clientAddr, sizeof(IpAddress));
+
+							return 1;
+						}
+
+						return 0;
+
+					case BIO_CTRL_DGRAM_SET_NEXT_TIMEOUT:
+						return 1;
+
+					default:
+						LIB_MSG_WARN("Not support udpBioCtrl cmd: {}", cmd);
+						return 0;
+				}
+			}
+
+			static int udpRcv(BIO* bio, char* buf, int len) {
+				IoContext* ioContext = (IoContext*) BIO_get_data(bio);
+				if (!ioContext) {
+					return -1;
+				}
+
+				size_t cpDataLen = len;
+				char* inpBufPtr = ioContext->inpBuf.get(cpDataLen);
+				if (cpDataLen > 0) {
+					memcpy(buf, inpBufPtr, cpDataLen);
+
+					return cpDataLen;
+				}
+				else {
+					BIO_set_retry_read(bio);
+					return 0;
+				}
+
+				return 0;
+			}
+
 			void init(JsonPropTree& cfg) {
 
 				#ifdef _WIN32

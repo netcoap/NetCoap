@@ -208,6 +208,10 @@ namespace netcoap {
 				Message::CONTENT_FORMAT contentFormat,
 				bool reliable = false) {
 
+				if (data && data->size() > MAX_BLOCK_BYTES_XFER) {
+					LIB_MSG_ERR_THROW_EX("Error data too large, max transfers: {}", MAX_BLOCK_BYTES_XFER);
+				}
+
 				shared_ptr<Message> req(new Message());
 
 				if (reliable) {
