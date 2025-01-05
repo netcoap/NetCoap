@@ -23,6 +23,7 @@
 #include <memory>
 #include <functional>
 #include <random>
+#include <string.h>
 
 #include "Toolbox/Toolbox.h"
 
@@ -37,7 +38,7 @@ using namespace netcoap::toolbox;
 using namespace netcoap::coap;
 using namespace netcoap::pubsub;
 
-string g_NetCoapCONFIG_FILE = "../ConfigFile/NetCoap.cfg"; //"C:\\Projects\\NetCoap\\ConfigFile\\NetCoap.cfg";
+string g_NetCoapCONFIG_FILE = "../ConfigFile/NetCoap.cfg"; // "C:\\Projects\\NetCoap\\ConfigFile\\NetCoap.cfg";
 
 Client* g_client = nullptr;
 string g_cfgUriPath = "";

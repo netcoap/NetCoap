@@ -429,10 +429,10 @@ namespace netcoap {
 				BLOCK2 = 23, BLOCK1 = 27, SIZE2 = 28, PROXY_URI = 35, PROXY_SCHEME = 39, SIZE1 = 60, REQUEST_TAG = 292
 			};
 
-			static const char DELIM_PATH = '/';
-			static const char DELIM_QUERY = '&';
-			static const char DELIM_IF_MATCH = ';';
-			static const char DELIM_ETAG = ';';
+			static char DELIM_PATH;
+			static char DELIM_QUERY;
+			static char DELIM_IF_MATCH;
+			static char DELIM_ETAG;
 
 			Option() {}
 			virtual ~Option() {}
@@ -598,5 +598,12 @@ namespace netcoap {
 			NUMBER m_number{ NUMBER::UNDEFINED };
 			unique_ptr<OptValue> m_val;
 		};
+
+
+		char Option::DELIM_PATH = '/';
+		char Option::DELIM_QUERY = '&';
+		char Option::DELIM_IF_MATCH = ';';
+		char Option::DELIM_ETAG = ';';
+
 	}
 }
