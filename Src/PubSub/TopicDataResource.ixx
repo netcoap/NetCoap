@@ -9,8 +9,10 @@ module;
 
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <memory>
 #include <iostream>
+#include <ranges>
 
 export module PubSub:TopicDataResource;
 
@@ -48,14 +50,17 @@ namespace netcoap {
 			void handleCb(shared_ptr<Message> req, Session* sess) {
 				
 				if (req->getCode() == Message::CODE::OP_GET) {
-
+					
 					if (req->isOptionNumExist(Option::NUMBER::OBSERVE)) {
 				
 						size_t obs = req->getOptionNum(Option::NUMBER::OBSERVE);
-						if (obs == 0) {
+						if (obs == 0) { // Subscribe
+							string query = req->getOptionRepeatStr(Option::NUMBER::URI_QUERY, Option::DELIM_QUERY);
+
 							RespSession respSess;
 							respSess.sess = sess;
 							respSess.token = req->getToken();
+							respSess.subsFilter = query;
 							m_subsMap[sess->getClientAddr().toString()] = respSess;
 						}
 						else { // Unsubscribe
@@ -76,6 +81,13 @@ namespace netcoap {
 					//}
 				}
 				else if (req->getCode() == Message::CODE::OP_PUT) {
+
+					string query = req->getOptionRepeatStr(Option::NUMBER::URI_QUERY, Option::DELIM_QUERY);
+					unordered_set<string> filterSet;
+					for (auto filter : views::split(query, Option::DELIM_QUERY)) {
+						string filterExpr(filter.begin(), filter.end());
+						filterSet.insert(filterExpr);
+					}
 
 					if (req->isOptionNumExist(Option::NUMBER::BLOCK1)) {
 						Block block = req->getOptionBlock(Option::NUMBER::BLOCK1);
@@ -107,20 +119,22 @@ namespace netcoap {
 
 						for (auto& [key, sess] : m_subsMap) {
 
-							shared_ptr<Message> resp(new Message());
+							if (sess.isSubsFilterEmpty() || sess.isSubsFilterInSet(filterSet)) {
+								shared_ptr<Message> resp(new Message());
 
-							resp->setMsgId(msgId);
-							resp->setToken(sess.token);
-							resp->setClientAddr(sess.sess->getClientAddr());
-							resp->setType(req->getType());
+								resp->setMsgId(msgId);
+								resp->setToken(sess.token);
+								resp->setClientAddr(sess.sess->getClientAddr());
+								resp->setType(req->getType());
 
-							resp->setCode(Message::CODE::CONTENT);
-							resp->addOptionNum(Option::NUMBER::CONTENT_FORMAT, static_cast<size_t>(req->getContentFormat()));
-							resp->addOptionNum(Option::NUMBER::OBSERVE, nxtSeq);
-							resp->addOptionBlock(Option::NUMBER::BLOCK2, block);
-							resp->setPayload(req->getPayload());
+								resp->setCode(Message::CODE::CONTENT);
+								resp->addOptionNum(Option::NUMBER::CONTENT_FORMAT, static_cast<size_t>(req->getContentFormat()));
+								resp->addOptionNum(Option::NUMBER::OBSERVE, nxtSeq);
+								resp->addOptionBlock(Option::NUMBER::BLOCK2, block);
+								resp->setPayload(req->getPayload());
 
-							sess.sess->sessionSend(req, resp);
+								sess.sess->sessionSend(req, resp);
+							}
 						}
 
 						return;
@@ -140,18 +154,20 @@ namespace netcoap {
 
 					for (auto& [key, sess] : m_subsMap) {
 
-						shared_ptr<Message> resp(new Message());
+						if (sess.isSubsFilterEmpty() || sess.isSubsFilterInSet(filterSet)) {
+							shared_ptr<Message> resp(new Message());
 
-						resp->setMsgId(msgId);
-						resp->setToken(sess.token);
-						resp->setClientAddr(sess.sess->getClientAddr());
-						resp->setType(req->getType());						
-						resp->setCode(Message::CODE::CONTENT);
-						resp->addOptionNum(Option::NUMBER::CONTENT_FORMAT, static_cast<size_t>(req->getContentFormat()));
-						resp->addOptionNum(Option::NUMBER::OBSERVE, nxtSeq);
-						resp->setPayload(req->getPayload());
+							resp->setMsgId(msgId);
+							resp->setToken(sess.token);
+							resp->setClientAddr(sess.sess->getClientAddr());
+							resp->setType(req->getType());
+							resp->setCode(Message::CODE::CONTENT);
+							resp->addOptionNum(Option::NUMBER::CONTENT_FORMAT, static_cast<size_t>(req->getContentFormat()));
+							resp->addOptionNum(Option::NUMBER::OBSERVE, nxtSeq);
+							resp->setPayload(req->getPayload());
 
-						sess.sess->sessionSend(req, resp);
+							sess.sess->sessionSend(req, resp);
+						}
 					}
 				}
 				else {
@@ -166,6 +182,26 @@ namespace netcoap {
 			public:
 				string token;
 				Session* sess;
+				string subsFilter;
+
+				inline bool isSubsFilterEmpty() {
+					return (subsFilter.size() == 0);
+				}
+
+				bool isSubsFilterInSet(unordered_set<string> &filterSet) {
+					if (filterSet.size() == 0) {
+						return false;
+					}
+
+					for (auto filter : views::split(subsFilter, Option::DELIM_QUERY)) {
+						string filterExpr(filter.begin(), filter.end());
+						if (filterSet.find(filterExpr) == filterSet.end()) {
+							return false;
+						}
+					}
+
+					return true;
+				}
 			};
 
 			uint32_t getNxtSeq() {

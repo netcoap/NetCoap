@@ -22,12 +22,7 @@
 #include <thread>
 #include <memory>
 #include <functional>
-
-#include <openssl/ssl.h>
-#include <openssl/bio.h>
-#include <openssl/err.h>
-#include <openssl/rand.h>
-#include <openssl/opensslv.h>
+#include <random>
 
 #include "Toolbox/Toolbox.h"
 
@@ -42,20 +37,19 @@ using namespace netcoap::toolbox;
 using namespace netcoap::coap;
 using namespace netcoap::pubsub;
 
-string g_NetCoapCONFIG_FILE = "../ConfigFile/NetCoap.cfg";
+string g_NetCoapCONFIG_FILE = "../ConfigFile/NetCoap.cfg"; //"C:\\Projects\\NetCoap\\ConfigFile\\NetCoap.cfg";
 
 Client* g_client = nullptr;
 string g_cfgUriPath = "";
-string g_dataUriPath = "/www/topic/ps/data";
+string g_dataUriPath = "/www/topic/ps/weather";
 string g_topicName = "Weather";
 string g_topicUriPath = "/www/topic/ps";
 UdpClientDtlsIo g_dtls;
 JsonPropTree g_cfg;
 
-
 string g_stopTestMsg = "<--- Press ^c to stop testing --->\n";
 
-void tstPublish() {
+void connect() {
 
 	g_cfg.fromJsonFile(g_NetCoapCONFIG_FILE);
 	g_client = new Client(g_cfg, g_dtls);
@@ -64,15 +58,71 @@ void tstPublish() {
 	if (!connected) {
 		exit(1);
 	}
+}
 
-	string s = "0123456789abcdefghijklmnopqrstuvwxyz0123456789";
+void tstPublish() {
+
+	JsonPropTree jsonPropTree;
 
 	for (int i = 0; i < 10; i++) {
-		shared_ptr<string> data(new string(70000, 0));
-		Helper::syncOut() << i << " Publish data length: " << data->size() << "\n"; // << "; data: " << *data << "\n";
-		g_client->publish(g_dataUriPath, data, Message::CONTENT_FORMAT::TEXT_PLAIN, true);
-		reverse(s.begin(), s.end());
+		random_device rd;
+		mt19937 gen(rd());
+
+		uniform_int_distribution<int> humidityDist(50, 70);
+		uniform_real_distribution<float> temperatureDist(70.0, 73.0);
+
+		int humidity = humidityDist(gen);
+		float temperature = temperatureDist(gen);
+
+		// ============================ Publish Temperature ======================
+
+		string jsonTemperature =
+			string("{") +
+			"\"" + "Title:" + "\"" + ':' + "\"Weather\"" + "," +
+			"\"" + "temperature" + "\"" + ':' + to_string(temperature) +
+			string("}");
+
+		shared_ptr<string> temperatureDat(new string());
+		jsonPropTree.fromJsonStr(jsonTemperature);
+		jsonPropTree.toCborStr(*temperatureDat);
+
+		g_client->publish(
+			g_dataUriPath, temperatureDat, Message::CONTENT_FORMAT::APP_CBOR,
+			true, "temperature");
+
+		// ============================ Publish Humidity ==========================
+
+		string jsonHumidity =
+			string("{") +
+			"\"" + "Title:" + "\"" + ':' + "\"Weather\"" + "," +
+			"\"" + "humidity" + "\"" + ':' + to_string(humidity) +
+			string("}");
+
+		shared_ptr<string> humidityDat(new string());
+		jsonPropTree.fromJsonStr(jsonHumidity);
+		jsonPropTree.toCborStr(*humidityDat);
+
+		g_client->publish(
+			g_dataUriPath, humidityDat, Message::CONTENT_FORMAT::APP_CBOR,
+			true, "humidity");
 	}
+}
+
+void subscribeCb(
+	Client::STATUS status,
+	const shared_ptr<Message> respMsg) {
+
+	shared_ptr<string> payLoad = respMsg->getPayload();
+	JsonPropTree jsonPropTree;
+	jsonPropTree.fromCborStr(*payLoad);
+
+	int humidity = jsonPropTree.get<int>("humidity");
+	Helper::syncOut() << "Humidity: " << humidity << "\n";
+}
+
+void tstSubscriber() {
+
+	g_client->subscribe(g_dataUriPath, subscribeCb, "humidity");
 }
 
 static void
@@ -103,6 +153,9 @@ int main() {
 	sigaction(SIGPIPE, &sa, NULL);
 #endif
 
+	connect();
+
+	tstSubscriber();
 	tstPublish();
 
 	char ch;

@@ -22,12 +22,6 @@
 #include <memory>
 #include <functional>
 
-#include <openssl/ssl.h>
-#include <openssl/bio.h>
-#include <openssl/err.h>
-#include <openssl/rand.h>
-#include <openssl/opensslv.h>
-
 #include "Toolbox/Toolbox.h"
 
 import Coap;
@@ -41,17 +35,28 @@ using namespace netcoap::toolbox;
 using namespace netcoap::coap;
 using namespace netcoap::pubsub;
 
-string g_NetCoapCONFIG_FILE = "../ConfigFile/NetCoap.cfg";
+string g_NetCoapCONFIG_FILE = "../ConfigFile/NetCoap.cfg"; //"C:\\Projects\\NetCoap\\ConfigFile\\NetCoap.cfg";
 
 Client* g_client = nullptr;
 string g_cfgUriPath = "";
-string g_dataUriPath = "/www/topic/ps/data";
+string g_dataUriPath = "/www/topic/ps/weather";
 string g_topicName = "Weather";
 string g_topicUriPath = "/www/topic/ps";
 UdpClientDtlsIo g_dtls;
 JsonPropTree g_cfg;
 
 string g_stopTestMsg = "<--- Press ^c to stop testing --->\n";
+
+void connect() {
+
+	g_cfg.fromJsonFile(g_NetCoapCONFIG_FILE);
+	g_client = new Client(g_cfg, g_dtls);
+	bool connected = g_client->connect();
+
+	if (!connected) {
+		exit(1);
+	}
+}
 
 void createTopicCb(
 	Client::STATUS status,
@@ -75,14 +80,6 @@ void createTopicCb(
 }
 
 void tstCreateTopic() {
-
-	g_cfg.fromJsonFile(g_NetCoapCONFIG_FILE);
-	g_client = new Client(g_cfg, g_dtls);
-	bool connected = g_client->connect();
-
-	if (!connected) {
-		exit(1);
-	}
 
 	g_client->createTopic(
 		g_topicName, g_topicUriPath, g_dataUriPath,
@@ -190,27 +187,17 @@ void subscribeCb(
 	Client::STATUS status,
 	const shared_ptr<Message> respMsg) {
 
-	time_point now = high_resolution_clock::now();
+	shared_ptr<string> payLoad = respMsg->getPayload();
+	JsonPropTree jsonPropTree;
+	jsonPropTree.fromCborStr(*payLoad);
 
-	//Helper::syncOut() << "***** subscribe is working... *****\n";
-	//Helper::syncOut() << "-----> Result from subscribe:\n";
-
-	duration durProcTime_us = duration_cast<microseconds>(now - g_startProcTime);
-	if (durProcTime_us.count() != 0) {
-		float bytesPerUsec = float(respMsg->getPayload()->size()) / float(durProcTime_us.count());
-		Helper::syncOut() << "Bytes per usec: " << std::fixed << std::setprecision(2) << bytesPerUsec << "\n";
-	}
-
-	Helper::syncOut() << "Data length received: " << respMsg->getPayload()->size() << "\n";
-	//Helper::syncOut() << "Data received: " << *respMsg->getPayload() << "\n";
-
-	g_startProcTime = high_resolution_clock::now();
-
+	float temperature = jsonPropTree.get<float>("temperature");
+	Helper::syncOut() << "Temperature: " << fixed << setprecision(2) << temperature << "\n";
 }
 
 void tstSubscriber() {
 
-	g_client->subscribe(g_dataUriPath, subscribeCb);
+	g_client->subscribe(g_dataUriPath, subscribeCb, "temperature");
 }
 
 static void
@@ -240,6 +227,8 @@ int main() {
 	sa.sa_handler = SIG_IGN;
 	sigaction(SIGPIPE, &sa, NULL);
 #endif
+
+	connect();
 
 	tstCreateTopic();
 	tstDiscovery();

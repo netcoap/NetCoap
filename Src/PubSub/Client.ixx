@@ -85,7 +85,7 @@ namespace netcoap {
 			bool getAllTopicCollection(ResponseCb cb) {
 
 				shared_ptr<Message> req = buildDiscoveryReq(
-					Broker::WELL_KNOWN_CORE, TopicCfgDataResource::RT_CORE_PS_COLL);
+					Broker::WELL_KNOWN_CORE, "rt=" + TopicCfgDataResource::RT_CORE_PS_COLL);
 				
 				TokenCbDat cbDat(cb, TokenCbDat::CALLBACK_TYPE::ONCE, req);
 
@@ -97,7 +97,7 @@ namespace netcoap {
 			bool getAllTopicCfgFromCollection(ResponseCb cb) {
 
 				shared_ptr<Message> req = buildDiscoveryReq(
-					Broker::WELL_KNOWN_CORE, TopicCfgDataResource::RT_CORE_PS_CONF);
+					Broker::WELL_KNOWN_CORE, "rt=" + TopicCfgDataResource::RT_CORE_PS_CONF);
 				
 				TokenCbDat cbDat(cb, TokenCbDat::CALLBACK_TYPE::ONCE, req);
 
@@ -109,7 +109,7 @@ namespace netcoap {
 			bool getAllTopicData(string uriPath, ResponseCb cb) {
 
 				shared_ptr<Message> req = buildDiscoveryReq(
-					uriPath, TopicCfgDataResource::RT_CORE_PS_DATA);
+					uriPath, "rt=" + TopicCfgDataResource::RT_CORE_PS_DATA);
 				
 				TokenCbDat cbDat(cb, TokenCbDat::CALLBACK_TYPE::ONCE, req);
 
@@ -206,7 +206,8 @@ namespace netcoap {
 				string uriDataPath,
 				shared_ptr<string> data,
 				Message::CONTENT_FORMAT contentFormat,
-				bool reliable = false) {
+				bool reliable = false,
+				string keywords = "") {
 
 				if (data && data->size() > MAX_BLOCK_BYTES_XFER) {
 					LIB_MSG_ERR_THROW_EX("Error data too large, max transfers: {}", MAX_BLOCK_BYTES_XFER);
@@ -223,6 +224,7 @@ namespace netcoap {
 				req->setCode(Message::CODE::OP_PUT);
 				req->addOptionRepeatStr(Option::NUMBER::URI_PATH, uriDataPath, Option::DELIM_PATH);
 				req->addOptionNum(Option::NUMBER::CONTENT_FORMAT, static_cast<size_t>(contentFormat));
+				req->addOptionRepeatStr(Option::NUMBER::URI_QUERY, keywords, Option::DELIM_QUERY);
 				req->setPayload(data);
 
 				TokenCbDat cbDat(nullptr, TokenCbDat::CALLBACK_TYPE::NONE, req);
@@ -232,7 +234,7 @@ namespace netcoap {
 				return true;
 			}
 
-			bool subscribe(string uriDataPath, ResponseCb cb) {
+			bool subscribe(string uriDataPath, ResponseCb cb, string filterKeywords = "") {
 
 				if (m_subsTokenMap.find(uriDataPath) != m_subsTokenMap.end()) {
 					LIB_MSG_WARN("Already subscribed to {}", uriDataPath);
@@ -245,6 +247,7 @@ namespace netcoap {
 				req->setCode(Message::CODE::OP_GET);
 				req->addOptionRepeatStr(Option::NUMBER::URI_PATH, uriDataPath, Option::DELIM_PATH);
 				req->addOptionNum(Option::NUMBER::OBSERVE, 0);
+				req->addOptionRepeatStr(Option::NUMBER::URI_QUERY, filterKeywords, Option::DELIM_QUERY);
 
 				TokenCbDat cbDat(cb, TokenCbDat::CALLBACK_TYPE::RECURRENT, req);
 

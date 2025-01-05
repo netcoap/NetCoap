@@ -65,6 +65,7 @@ namespace netcoap {
 				shared_ptr<Message> msg = nullptr;
 				Block block;
 				string uriPath;
+				string uriQuery;
 
 				shared_ptr<string> rcvBuf = nullptr;
 			};
@@ -78,7 +79,8 @@ namespace netcoap {
 				}
 				else {
 					blockData.msg = msg;
-					blockData.uriPath = msg->getOptionRepeatStr(Option::NUMBER::URI_PATH, Option::DELIM_PATH);;
+					blockData.uriPath = msg->getOptionRepeatStr(Option::NUMBER::URI_PATH, Option::DELIM_PATH);
+					blockData.uriQuery = msg->getOptionRepeatStr(Option::NUMBER::URI_QUERY, Option::DELIM_QUERY);
 					blockData.block.setSz(BLOCK_SZX);
 				}
 
@@ -99,7 +101,8 @@ namespace netcoap {
 					req->setToken(blockData.msg->getToken());
 					req->setCode(msg->getCode());
 					blockData.block.setMore(1);
-					req->addOptionRepeatStr(Option::NUMBER::URI_PATH, blockData.uriPath, Option::DELIM_PATH);	
+					req->addOptionRepeatStr(Option::NUMBER::URI_PATH, blockData.uriPath, Option::DELIM_PATH);
+					req->addOptionRepeatStr(Option::NUMBER::URI_QUERY, blockData.uriQuery, Option::DELIM_QUERY);
 				}
 
 				m_tokenBlockMap[req->getToken()] = blockData;
