@@ -23,6 +23,7 @@
     <ClCompile Include="..\..\Src\Toolbox\Helper.ixx" />
     <ClCompile Include="..\..\Src\Toolbox\JsonPropTree.ixx" />
     <ClCompile Include="..\..\Src\Toolbox\JsonValue.ixx" />
+    <ClCompile Include="..\..\Src\Toolbox\Ssl.ixx" />
     <ClCompile Include="..\..\Src\Toolbox\SyncQ.ixx" />
     <ClCompile Include="..\..\Src\Toolbox\LogMessage.ixx" />
     <ClCompile Include="..\..\Src\Toolbox\Socket.ixx" />
