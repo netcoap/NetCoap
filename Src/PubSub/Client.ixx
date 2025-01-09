@@ -25,6 +25,7 @@ import Coap;
 import Toolbox;
 import :TopicCfgResource;
 import :Broker;
+import :TokenContext;
 
 using namespace std;
 using namespace chrono;
@@ -38,11 +39,6 @@ namespace netcoap {
 		public:
 
 			enum class STATE { NONE, TRY_CONNECT, ERR_CONNECT, CONNECTED };
-
-			enum class STATUS { SUCCESS, FAILED, MAX_RETRY_EXCEED};
-
-			using ResponseCb = function<void(
-				STATUS status, const shared_ptr<Message> respMsg)>;
 
 			Client(JsonPropTree& cfg, IoSession& io) :
 				m_io(io), m_cfg(cfg) {
@@ -82,43 +78,46 @@ namespace netcoap {
 				return true;
 			}
 
-			bool getAllTopicCollection(ResponseCb cb) {
+			bool getAllTopicCollection(TokenContext::ResponseCb cb) {
 
 				shared_ptr<Message> req = buildDiscoveryReq(
 					Broker::WELL_KNOWN_CORE, "rt=" + TopicCfgDataResource::RT_CORE_PS_COLL);
 				
-				TokenCbDat cbDat(cb, TokenCbDat::CALLBACK_TYPE::ONCE, req);
+				shared_ptr<TokenContext> tokenCtx (
+					new TokenContext(cb, TokenContext::CALLBACK_TYPE::ONCE, req));
 
-				submitReq(cbDat);
+				submitReq(tokenCtx);
 
 				return true;
 			}
 
-			bool getAllTopicCfgFromCollection(ResponseCb cb) {
+			bool getAllTopicCfgFromCollection(TokenContext::ResponseCb cb) {
 
 				shared_ptr<Message> req = buildDiscoveryReq(
 					Broker::WELL_KNOWN_CORE, "rt=" + TopicCfgDataResource::RT_CORE_PS_CONF);
 				
-				TokenCbDat cbDat(cb, TokenCbDat::CALLBACK_TYPE::ONCE, req);
+				shared_ptr<TokenContext> tokenCtx(
+					new TokenContext(cb, TokenContext::CALLBACK_TYPE::ONCE, req));
 
-				submitReq(cbDat);
+				submitReq(tokenCtx);
 
 				return true;
 			}
 
-			bool getAllTopicData(string uriPath, ResponseCb cb) {
+			bool getAllTopicData(string uriPath, TokenContext::ResponseCb cb) {
 
 				shared_ptr<Message> req = buildDiscoveryReq(
 					uriPath, "rt=" + TopicCfgDataResource::RT_CORE_PS_DATA);
 				
-				TokenCbDat cbDat(cb, TokenCbDat::CALLBACK_TYPE::ONCE, req);
+				shared_ptr<TokenContext> tokenCtx(
+					new TokenContext(cb, TokenContext::CALLBACK_TYPE::ONCE, req));
 
-				submitReq(cbDat);
+				submitReq(tokenCtx);
 
 				return true;
 			}
 
-			bool getAllTopicCfg(string uriPath, ResponseCb cb) {
+			bool getAllTopicCfg(string uriPath, TokenContext::ResponseCb cb) {
 				 
 				shared_ptr<Message> req(new Message());
 
@@ -126,14 +125,15 @@ namespace netcoap {
 				req->setCode(Message::CODE::OP_GET);
 				req->addOptionRepeatStr(Option::NUMBER::URI_PATH, uriPath, Option::DELIM_PATH);
 
-				TokenCbDat cbDat(cb, TokenCbDat::CALLBACK_TYPE::ONCE, req);
+				shared_ptr<TokenContext> tokenCtx(
+					new TokenContext(cb, TokenContext::CALLBACK_TYPE::ONCE, req));
 
-				submitReq(cbDat);
+				submitReq(tokenCtx);
 
 				return true;
 			}
 
-			bool getAllTopicCfgByProp(string uriPath, JsonPropTree& props, ResponseCb cb) {
+			bool getAllTopicCfgByProp(string uriPath, JsonPropTree& props, TokenContext::ResponseCb cb) {
 
 				shared_ptr<Message> req(new Message());
 				shared_ptr<string> payload(new string());
@@ -144,14 +144,16 @@ namespace netcoap {
 				req->addOptionRepeatStr(Option::NUMBER::URI_PATH, uriPath, Option::DELIM_PATH);
 				req->setPayload(payload);
 
-				TokenCbDat cbDat(cb, TokenCbDat::CALLBACK_TYPE::ONCE, req);
+				shared_ptr<TokenContext> tokenCtx(
+					new TokenContext(cb, TokenContext::CALLBACK_TYPE::ONCE, req));
 
-				submitReq(cbDat);
+				submitReq(tokenCtx);
+
 
 				return true;
 			}
 
-			bool getTopicCfg(string uriCfgPath, ResponseCb cb) {
+			bool getTopicCfg(string uriCfgPath, TokenContext::ResponseCb cb) {
 
 				shared_ptr<Message> req(new Message());
 
@@ -159,14 +161,15 @@ namespace netcoap {
 				req->setCode(Message::CODE::OP_GET);
 				req->addOptionRepeatStr(Option::NUMBER::URI_PATH, uriCfgPath, Option::DELIM_PATH);
 
-				TokenCbDat cbDat(cb, TokenCbDat::CALLBACK_TYPE::ONCE, req);
+				shared_ptr<TokenContext> tokenCtx(
+					new TokenContext(cb, TokenContext::CALLBACK_TYPE::ONCE, req));
 
-				submitReq(cbDat);
+				submitReq(tokenCtx);
 
 				return true;
 			}
 
-			bool getTopicCfgByProp(string uriCfgPath, JsonPropTree& props, ResponseCb cb) {
+			bool getTopicCfgByProp(string uriCfgPath, JsonPropTree& props, TokenContext::ResponseCb cb) {
 
 				shared_ptr<Message> req(new Message());
 				shared_ptr<string> payload(new string());
@@ -177,14 +180,15 @@ namespace netcoap {
 				req->addOptionRepeatStr(Option::NUMBER::URI_PATH, uriCfgPath, Option::DELIM_PATH);
 				req->setPayload(payload);
 
-				TokenCbDat cbDat(cb, TokenCbDat::CALLBACK_TYPE::ONCE, req);
+				shared_ptr<TokenContext> tokenCtx(
+					new TokenContext(cb, TokenContext::CALLBACK_TYPE::ONCE, req));
 
-				submitReq(cbDat);
+				submitReq(tokenCtx);
 
 				return true;
 			}
 
-			bool setTopicCfgByProp(string uriCfgPath, JsonPropTree& props, ResponseCb cb) {
+			bool setTopicCfgByProp(string uriCfgPath, JsonPropTree& props, TokenContext::ResponseCb cb) {
 
 				shared_ptr<Message> req(new Message());
 				shared_ptr<string> payload(new string());
@@ -195,9 +199,10 @@ namespace netcoap {
 				req->addOptionRepeatStr(Option::NUMBER::URI_PATH, uriCfgPath, Option::DELIM_PATH);
 				req->setPayload(payload);
 
-				TokenCbDat cbDat(cb, TokenCbDat::CALLBACK_TYPE::ONCE, req);
+				shared_ptr<TokenContext> tokenCtx(
+					new TokenContext(cb, TokenContext::CALLBACK_TYPE::ONCE, req));
 
-				submitReq(cbDat);
+				submitReq(tokenCtx);
 
 				return true;
 			}
@@ -227,14 +232,16 @@ namespace netcoap {
 				req->addOptionRepeatStr(Option::NUMBER::URI_QUERY, keywords, Option::DELIM_QUERY);
 				req->setPayload(data);
 
-				TokenCbDat cbDat(nullptr, TokenCbDat::CALLBACK_TYPE::NONE, req);
+				shared_ptr<TokenContext> tokenCtx(
+					new TokenContext(nullptr, TokenContext::CALLBACK_TYPE::NONE, req));
+				tokenCtx->setTopicData(uriDataPath);
 
-				submitReq(cbDat);
+				submitReq(tokenCtx);
 
 				return true;
 			}
 
-			bool subscribe(string uriDataPath, ResponseCb cb, string filterKeywords = "") {
+			bool subscribe(string uriDataPath, TokenContext::ResponseCb cb, string filterKeywords = "") {
 
 				if (m_subsTokenMap.find(uriDataPath) != m_subsTokenMap.end()) {
 					LIB_MSG_WARN("Already subscribed to {}", uriDataPath);
@@ -249,9 +256,10 @@ namespace netcoap {
 				req->addOptionNum(Option::NUMBER::OBSERVE, 0);
 				req->addOptionRepeatStr(Option::NUMBER::URI_QUERY, filterKeywords, Option::DELIM_QUERY);
 
-				TokenCbDat cbDat(cb, TokenCbDat::CALLBACK_TYPE::RECURRENT, req);
+				shared_ptr<TokenContext> tokenCtx(
+					new TokenContext(cb, TokenContext::CALLBACK_TYPE::RECURRENT, req));
 
-				string token = submitReq(cbDat);
+				string token = submitReq(tokenCtx);
 				m_subsTokenMap[uriDataPath] = token;
 
 				return true;
@@ -266,34 +274,17 @@ namespace netcoap {
 				req->addOptionRepeatStr(Option::NUMBER::URI_PATH, uriDataPath, Option::DELIM_PATH);
 				req->addOptionNum(Option::NUMBER::OBSERVE, 1);
 
-				TokenCbDat cbDat(nullptr, TokenCbDat::CALLBACK_TYPE::NONE, req);
+				shared_ptr<TokenContext> tokenCtx(
+					new TokenContext(nullptr, TokenContext::CALLBACK_TYPE::NONE, req));
 
-				submitReq(cbDat);
+				submitReq(tokenCtx);
 
 				if (m_subsTokenMap.find(uriDataPath) != m_subsTokenMap.end()) {
-					lock_guard<mutex> lock(m_mtxToken);
-					m_tokenToCbMap.erase(m_subsTokenMap[uriDataPath]);
-
 					m_subsTokenMap.erase(uriDataPath);
 				}
 
 				return true;
 			}
-
-			//bool getLatestData(string uriDataPath, ResponseCb cb) {
-
-			//	shared_ptr<Message> req(new Message());
-
-			//	req->setType(Message::TYPE::CONFIRM);
-			//	req->setCode(Message::CODE::OP_GET);
-			//	req->addOptionRepeatStr(Option::NUMBER::URI_PATH, uriDataPath, Option::DELIM_PATH);
-
-			//	TokenCbDat cbDat(cb, TokenCbDat::CALLBACK_TYPE::ONCE, req);
-
-			//	submitReq(cbDat);
-
-			//	return true;
-			//}
 
 			bool removeTopicCfgData(string uriCfgDataPath) {
 
@@ -303,9 +294,10 @@ namespace netcoap {
 				req->setCode(Message::CODE::OP_DELETE);
 				req->addOptionRepeatStr(Option::NUMBER::URI_PATH, uriCfgDataPath, Option::DELIM_PATH);
 
-				TokenCbDat cbDat(nullptr, TokenCbDat::CALLBACK_TYPE::NONE, req);
+				shared_ptr<TokenContext> tokenCtx(
+					new TokenContext(nullptr, TokenContext::CALLBACK_TYPE::NONE, req));
 
-				submitReq(cbDat);
+				submitReq(tokenCtx);
 
 				return true;
 			}
@@ -316,7 +308,7 @@ namespace netcoap {
 				string dataUriPath,
 				string topicType,
 				Message::CONTENT_FORMAT mediaType,
-				ResponseCb cb) {
+				TokenContext::ResponseCb cb) {
 				
 				size_t pos = dataUriPath.find(topicUriPath);
 				if (pos != 0) {
@@ -346,9 +338,10 @@ namespace netcoap {
 				req->addOptionRepeatStr(Option::NUMBER::URI_PATH, topicUriPath, Option::DELIM_PATH);
 				req->setPayload(cbor);
 
-				TokenCbDat cbDat(cb, TokenCbDat::CALLBACK_TYPE::ONCE, req);
+				shared_ptr<TokenContext> tokenCtx(
+					new TokenContext(cb, TokenContext::CALLBACK_TYPE::ONCE, req));
 
-				submitReq(cbDat);
+				submitReq(tokenCtx);
 
 				return true;
 			}
@@ -369,11 +362,13 @@ namespace netcoap {
 						procRespMsg(buf);
 					}
 
+					shared_ptr<TokenContext> tokenCtx;
+					if (m_reqQ.pop(tokenCtx)) {
+						procReqMsg(tokenCtx);
+					}
+
 					if (m_nstart > 0) {
-						shared_ptr<Message> msg;
-						if (m_reqQ.pop(msg)) {
-							procReqMsg(msg);
-						}
+						outputChannel();
 					}
 					else {
 						retryXmit();
@@ -407,65 +402,107 @@ namespace netcoap {
 					m_nstart++;
 				}
 
-				bool cont;
-				shared_ptr<Message> req = m_block2Xfer.clientRcv(resp, cont);
-				if (req) {
-					m_reqQ.pushFront(req);
-					return;
-				}
-				else if (resp->getType() == Message::TYPE::CONFIRM) {
-					shared_ptr<Message> ack = resp->buildAckResponse();
-					shared_ptr<IoBuf> buf(new IoBuf());
-					ack->serialize(buf->buf);
-					m_io.write(buf, nullptr);
-				}
+				if (m_tokenCtxMap.find(resp->getToken()) != m_tokenCtxMap.end()) {
+					shared_ptr<TokenContext> tokenCtx = m_tokenCtxMap[resp->getToken()];
 
-				if (!cont) {
-					return;
-				}
+					SyncQ<shared_ptr<TokenContext>>* topicQ = m_topicChanQ[tokenCtx->getTopicData()].get();
 
-				if (resp->isOptionNumExist(Option::NUMBER::BLOCK1)) {
+					bool cont;
+					shared_ptr<Message> req = tokenCtx->getBlock2Xfer().clientRcv(resp, cont);
+					if (req) {
+						tokenCtx->setMsg(req);
+						topicQ->pushFront(tokenCtx);
 
-					shared_ptr<Message> blockMsg = m_block1Xfer.rcv(resp); // Block 1 more transfer
-					if (blockMsg) {
-						m_reqQ.pushFront(blockMsg);
 						return;
 					}
-					else {
-						blockMsg = resp;
-					}
-				}
-
-				TokenCbDat cbDat;
-				{
-					lock_guard<mutex> lock(m_mtxToken);
-					cbDat = m_tokenToCbMap[resp->getToken()];
-				}
-
-				if ((cbDat.cbType != TokenCbDat::CALLBACK_TYPE::NONE) &&
-					(resp->getCode() != Message::CODE::EMPTY)) {
-
-					int code = static_cast<int>(resp->getCode()) & 0xE0;
-
-					if ((code == 0x80) || (code == 0xA0)) { // Class 4 or Class 5 error
-						cbDat.cb(STATUS::FAILED, resp);
-					}
-					else {
-						cbDat.cb(STATUS::SUCCESS, resp);
+					else if (resp->getType() == Message::TYPE::CONFIRM) {
+						shared_ptr<Message> ack = resp->buildAckResponse();
+						shared_ptr<IoBuf> buf(new IoBuf());
+						ack->serialize(buf->buf);
+						m_io.write(buf, nullptr);
 					}
 
-					if (cbDat.cbType != TokenCbDat::CALLBACK_TYPE::RECURRENT) {
-						lock_guard<mutex> lock(m_mtxToken);
-						m_tokenToCbMap.erase(resp->getToken());
+					if (!cont) {
+						return;
+					}
+
+					if (resp->isOptionNumExist(Option::NUMBER::BLOCK1)) {
+
+						shared_ptr<Message> blockMsg = tokenCtx->getBlock1Xfer().rcv(resp); // Block 1 more transfer
+						if (blockMsg) {
+							tokenCtx->setMsg(blockMsg);
+							topicQ->pushFront(tokenCtx);
+
+							return;
+						}
+						else {
+							blockMsg = resp;
+						}
+					}
+
+					if ((tokenCtx->getCbType() != TokenContext::CALLBACK_TYPE::NONE) &&
+						(resp->getCode() != Message::CODE::EMPTY)) {
+
+						int code = static_cast<int>(resp->getCode()) & 0xE0;
+
+						if ((code == 0x80) || (code == 0xA0)) { // Class 4 or Class 5 error
+							tokenCtx->getCb()(TokenContext::STATUS::FAILED, resp);
+						}
+						else {
+							tokenCtx->getCb()(TokenContext::STATUS::SUCCESS, resp);
+						}
+
+						if (tokenCtx->getCbType() != TokenContext::CALLBACK_TYPE::RECURRENT) {
+							m_tokenCtxMap.erase(resp->getToken());
+						}
 					}
 				}
 			}
 
-			void procReqMsg(shared_ptr<Message> msg) {
+			void procReqMsg(shared_ptr<TokenContext> tokenCtx) {
 
-				msg = m_block1Xfer.xfer(msg);
+				m_tokenCtxMap[tokenCtx->getMsg()->getToken()] = tokenCtx;
 
-				m_block2Xfer.saveReq(msg);
+				if (m_topicChanQ.find(tokenCtx->getTopicData()) == m_topicChanQ.end()) {
+					m_topicChanQ.emplace(tokenCtx->getTopicData(), new SyncQ<shared_ptr<TokenContext>>());
+				}
+
+				SyncQ<shared_ptr<TokenContext>>* topicQ = m_topicChanQ[tokenCtx->getTopicData()].get();
+				topicQ->push(tokenCtx);
+			}
+
+			void outputChannel() {
+
+				if (m_topicChanQ.empty()) {
+					return;
+				}
+
+				shared_ptr<TokenContext> tokenCtx;
+				bool firstTime = true;
+				size_t firstTopicIdx;
+				while (true) {
+					m_nxtTopicIdx = (m_nxtTopicIdx + 1) % m_topicChanQ.size();
+					if (firstTime) {
+						firstTopicIdx = m_nxtTopicIdx;
+						firstTime = false;
+					}
+					else if (m_nxtTopicIdx == firstTopicIdx) {
+						return; // No data anymore
+					}
+
+					auto topicIter = m_topicChanQ.begin();
+					std::advance(topicIter, m_nxtTopicIdx);
+					shared_ptr<TokenContext> nxtTokenCtx;
+					
+					if (topicIter->second->pop(tokenCtx)) {
+						break;
+					}
+				}
+
+				shared_ptr<Message> msg = tokenCtx->getMsg();
+				msg = tokenCtx->getBlock1Xfer().xfer(msg);
+
+				tokenCtx->getBlock2Xfer().saveReq(msg);
 
 				shared_ptr<IoBuf> buf;
 
@@ -485,26 +522,8 @@ namespace netcoap {
 
 		private:
 
-			class TokenCbDat {
-			public:
-				enum class CALLBACK_TYPE { NONE, ONCE, RECURRENT };
-
-				TokenCbDat() {}
-
-				TokenCbDat(ResponseCb rcp, CALLBACK_TYPE cbt, shared_ptr<Message> m) {
-					cb = rcp;
-					cbType = cbt;
-					msg = m;
-				}
-
-				CALLBACK_TYPE cbType = CALLBACK_TYPE::NONE;
-				ResponseCb cb;
-				shared_ptr<Message> msg;
-			};
-
 			class ResponseWait {
 			public:
-				uint16_t msgId = 0;
 				time_point<high_resolution_clock> prevTimeWait;
 				time_t nxtTimeWaitDur_sec = 0;
 				uint8_t numRetry = 0;
@@ -538,20 +557,15 @@ namespace netcoap {
 				}
 			}
 
-			string submitReq(TokenCbDat cbDat) {
+			string submitReq(shared_ptr<TokenContext> tokenCtx) {
 
 				string token = Message::getNxtToken();
 				uint16_t msgId = Message::getNxtMsgId();
 
-				cbDat.msg->setMsgId(msgId);
-				cbDat.msg->setToken(token);
+				tokenCtx->getMsg()->setMsgId(msgId);
+				tokenCtx->getMsg()->setToken(token);
 
-				{
-					lock_guard<mutex> lock(m_mtxToken);
-					m_tokenToCbMap[token] = cbDat;
-				}
-
-				m_reqQ.push(cbDat.msg);
+				m_reqQ.push(tokenCtx);
 
 				return token;
 			}
@@ -573,14 +587,13 @@ namespace netcoap {
 			STATE m_state = STATE::NONE;
 			bool m_stop = false;
 			uint8_t m_nstart;
-			SyncQ<shared_ptr<Message>> m_reqQ;
+			SyncQ<shared_ptr<TokenContext>> m_reqQ;
 			unordered_map<string, ResponseWait> m_respWaitMap;
-			mutex m_mtxToken;
-			unordered_map<string, TokenCbDat> m_tokenToCbMap;
+			unordered_map<string, shared_ptr<TokenContext>> m_tokenCtxMap;
 			unordered_map<string, string> m_subsTokenMap;
 			jthread m_clientThread;
-			Block1Xfer m_block1Xfer;
-			Block2Xfer m_block2Xfer;
+			unordered_map<string, unique_ptr<SyncQ<shared_ptr<TokenContext>>>> m_topicChanQ;
+			size_t m_nxtTopicIdx = 0;
 		};
 	}
 }

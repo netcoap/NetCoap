@@ -110,7 +110,7 @@ void tstPublish() {
 }
 
 void subscribeCb(
-	Client::STATUS status,
+	TokenContext::STATUS status,
 	const shared_ptr<Message> respMsg) {
 
 	shared_ptr<string> payLoad = respMsg->getPayload();

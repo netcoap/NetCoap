@@ -31,7 +31,7 @@ using namespace netcoap::pubsub;
 
 void runBroker() {
 	JsonPropTree cfg;
-	cfg.fromJsonFile("../ConfigFile/NetCoap.cfg");
+	cfg.fromJsonFile("../ConfigFile/NetCoap.cfg"); // "C:\\Projects\\NetCoap\\ConfigFile\\NetCoap.cfg");
 	UdpServerDtlsIo dtls;
 	Broker broker(cfg, dtls);
 	broker.run();

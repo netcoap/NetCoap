@@ -60,10 +60,10 @@ void connect() {
 }
 
 void createTopicCb(
-	Client::STATUS status,
+	TokenContext::STATUS status,
 	const shared_ptr<Message> respMsg) {
 
-	if (status == Client::STATUS::FAILED) {
+	if (status == TokenContext::STATUS::FAILED) {
 		Helper::syncOut() << "Err in creating topic \n";
 		return;
 	}
@@ -89,7 +89,7 @@ void tstCreateTopic() {
 }
 
 void discoveryCb(
-	Client::STATUS status,
+	TokenContext::STATUS status,
 	const shared_ptr<Message> respMsg) {
 
 	Helper::syncOut() << "***** discovery is working... *****\n";
@@ -104,7 +104,7 @@ void discoveryCb(
 }
 
 void filterTopicCb(
-	Client::STATUS status,
+	TokenContext::STATUS status,
 	const shared_ptr<Message> respMsg) {
 
 	Helper::syncOut() << "***** filterTopic is working... *****\n";
@@ -135,7 +135,7 @@ void tstDiscovery() {
 }
 
 void getSetTopicCb(
-	Client::STATUS status,
+	TokenContext::STATUS status,
 	const shared_ptr<Message> respMsg) {
 
 	Helper::syncOut() << "***** getSetTopic is working... *****\n";
@@ -185,7 +185,7 @@ void testGetSetTopic() {
 time_point g_startProcTime = high_resolution_clock::now();
 
 void subscribeCb(
-	Client::STATUS status,
+	TokenContext::STATUS status,
 	const shared_ptr<Message> respMsg) {
 
 	shared_ptr<string> payLoad = respMsg->getPayload();

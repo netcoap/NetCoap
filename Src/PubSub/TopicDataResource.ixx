@@ -70,24 +70,10 @@ namespace netcoap {
 						shared_ptr<Message> ack = req->buildAckResponse();
 						sess->sessionSend(req, ack);
 					}
-					//else {
-					//	shared_ptr<Message> ack = req->buildAckResponse();
-					//	if (m_lastPayload != nullptr) {
-					//		ack->setCode(Message::CODE::CONTENT);
-					//		ack->setPayload(m_lastPayload);
-					//	}
-
-					//	sess->sessionSend(req, ack);
-					//}
 				}
 				else if (req->getCode() == Message::CODE::OP_PUT) {
 
 					string query = req->getOptionRepeatStr(Option::NUMBER::URI_QUERY, Option::DELIM_QUERY);
-					unordered_set<string> filterSet;
-					for (auto filter : views::split(query, Option::DELIM_QUERY)) {
-						string filterExpr(filter.begin(), filter.end());
-						filterSet.insert(filterExpr);
-					}
 
 					if (req->isOptionNumExist(Option::NUMBER::BLOCK1)) {
 						Block block = req->getOptionBlock(Option::NUMBER::BLOCK1);
@@ -97,45 +83,14 @@ namespace netcoap {
 						if (block.getMore()) {
 
 							resp->setCode(Message::CODE::CONTINUE);
-							
-							//if (block.getNum() == 0) {
-							//	m_intermPayload = req->getPayload();
-							//}
-							//else {
-							//	m_intermPayload->reserve(m_intermPayload->size() + req->getPayload()->size());
-							//	m_intermPayload->append(*req->getPayload());
-							//}
 						}
 						else {
 							resp->setCode(Message::CODE::CHANGED);
-							//m_intermPayload->append(*req->getPayload());
-							//m_lastPayload = m_intermPayload;
 						}
 
 						sess->sessionSend(req, resp);
 
-						uint16_t msgId = Message::getNxtMsgId();
-						uint32_t nxtSeq = getNxtSeq();
-
-						for (auto& [key, sess] : m_subsMap) {
-
-							if (sess.isSubsFilterEmpty() || sess.isSubsFilterInSet(filterSet)) {
-								shared_ptr<Message> resp(new Message());
-
-								resp->setMsgId(msgId);
-								resp->setToken(sess.token);
-								resp->setClientAddr(sess.sess->getClientAddr());
-								resp->setType(req->getType());
-
-								resp->setCode(Message::CODE::CONTENT);
-								resp->addOptionNum(Option::NUMBER::CONTENT_FORMAT, static_cast<size_t>(req->getContentFormat()));
-								resp->addOptionNum(Option::NUMBER::OBSERVE, nxtSeq);
-								resp->addOptionBlock(Option::NUMBER::BLOCK2, block);
-								resp->setPayload(req->getPayload());
-
-								sess.sess->sessionSend(req, resp);
-							}
-						}
+						notifySubscribers(req, query, &block);
 
 						return;
 					}
@@ -145,34 +100,48 @@ namespace netcoap {
 						sess->sessionSend(req, ack);
 					}
 
-					//if (req->getPayload() != nullptr) {
-					//	m_lastPayload = req->getPayload();
-					//}
-
-					uint16_t msgId = Message::getNxtMsgId();
-					uint32_t nxtSeq = getNxtSeq();
-
-					for (auto& [key, sess] : m_subsMap) {
-
-						if (sess.isSubsFilterEmpty() || sess.isSubsFilterInSet(filterSet)) {
-							shared_ptr<Message> resp(new Message());
-
-							resp->setMsgId(msgId);
-							resp->setToken(sess.token);
-							resp->setClientAddr(sess.sess->getClientAddr());
-							resp->setType(req->getType());
-							resp->setCode(Message::CODE::CONTENT);
-							resp->addOptionNum(Option::NUMBER::CONTENT_FORMAT, static_cast<size_t>(req->getContentFormat()));
-							resp->addOptionNum(Option::NUMBER::OBSERVE, nxtSeq);
-							resp->setPayload(req->getPayload());
-
-							sess.sess->sessionSend(req, resp);
-						}
-					}
+					notifySubscribers(req, query, nullptr);
 				}
 				else {
 					shared_ptr<Message> errMsg = req->buildErrResponse(Message::CODE::NOT_IMPLEMENTED, "");
 					sess->sessionSend(req, errMsg);
+				}
+			}
+
+			void notifySubscribers(shared_ptr<Message> req,
+				string query, Block* blk) {
+
+				unordered_set<string> filterSet;
+				for (auto filter : views::split(query, Option::DELIM_QUERY)) {
+					string filterExpr(filter.begin(), filter.end());
+					filterSet.insert(filterExpr);
+				}
+
+				uint16_t msgId = Message::getNxtMsgId();
+				uint32_t nxtSeq = getNxtSeq();
+
+				for (auto& [key, sess] : m_subsMap) {
+
+					if (sess.isSubsFilterEmpty() || sess.isSubsFilterInSet(filterSet)) {
+						shared_ptr<Message> resp(new Message());
+
+						resp->setMsgId(msgId);
+						resp->setToken(sess.token);
+						resp->setClientAddr(sess.sess->getClientAddr());
+						resp->setType(req->getType());
+						resp->setCode(Message::CODE::CONTENT);
+						resp->addOptionNum(Option::NUMBER::CONTENT_FORMAT,
+							static_cast<size_t>(req->getContentFormat()));
+						resp->addOptionNum(Option::NUMBER::OBSERVE, nxtSeq);
+
+						if (blk) {
+							resp->addOptionBlock(Option::NUMBER::BLOCK2, *blk);
+						}
+
+						resp->setPayload(req->getPayload());
+
+						sess.sess->sessionSend(req, resp);
+					}
 				}
 			}
 
@@ -213,8 +182,6 @@ namespace netcoap {
 			uint32_t m_nxtSeq = 2;
 			string m_uriTopicCfgPath = "";
 			unordered_map<string, RespSession> m_subsMap;
-			//shared_ptr<string> m_lastPayload = make_shared<string>();
-			//shared_ptr<string> m_intermPayload = make_shared<string>();
 		};
 	}
 }

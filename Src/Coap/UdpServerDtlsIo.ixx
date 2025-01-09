@@ -103,14 +103,10 @@ namespace netcoap {
 
 			IoContext() {}
 
-			~IoContext() {
-				if (ssl) {
-					SSL_free(ssl);
-				}
-			}
+			~IoContext() {}
 
 			CONNECTION_STATE connectionState = CONNECTION_STATE::LISTEN;
-			SSL* ssl = nullptr;
+			unique_ptr<Ssl> ssl = nullptr;
 			SyncQ<shared_ptr<IoBuf>> inpQ;
 			BIO_ADDR* bioAddr;
 			Buffer inpBuf;
@@ -155,33 +151,7 @@ namespace netcoap {
 
 					IoContext* ioContext = m_ioContextMap[buf->clientAddr.toString()].get();
 
-					int retryCount = 0;
-					size_t totalSent = 0;
-					size_t bytesSent;
-					int errNo = 0;
-					while ((totalSent < buf->buf.length()) && (retryCount < MAX_RETRIES)) {
-						errNo = SSL_write_ex(
-							ioContext->ssl,
-							(buf->buf.data() + totalSent),
-							(buf->buf.length() - totalSent),
-							&bytesSent);
-
-						if (errNo > 0) {
-							totalSent += bytesSent;
-							retryCount = 0;
-							continue;
-						}
-
-						errNo = SSL_get_error(ioContext->ssl, errNo);
-						if ((errNo != SSL_ERROR_WANT_READ) && (errNo != SSL_ERROR_WANT_WRITE)) {
-							retryCount++;
-						}
-
-						continue;
-					}
-
-					if (totalSent != buf->buf.length()) {
-						LIB_MSG_ERR("Unable to send message to {} cause err {}\n", buf->clientAddr.toString(), errNo);
+					if (ioContext->ssl->write(buf->buf) < 0) {
 						m_outpQ.pushFront(buf);
 					}
 				}
@@ -259,7 +229,7 @@ namespace netcoap {
 					case IoContext::CONNECTION_STATE::LISTEN:
 						{
 							if (ioContext->ssl == nullptr) {
-								SSL* ssl = SSL_new(m_sslCtx);
+								unique_ptr<Ssl> ssl = make_unique<Ssl>(m_sslCtx);
 								if (!ssl) {
 									LIB_MSG_ERR_THROW_EX("Unable to get new client with SSL_new");
 								}
@@ -268,23 +238,24 @@ namespace netcoap {
 								BIO* wbio = BIO_new_dgram((int)m_sock->getSocket(), BIO_NOCLOSE);
 								BIO_set_data(rbio, ioContext);
 
-								SSL_set_bio(ssl, rbio, wbio);
+								SSL_set_bio(ssl->getSsl(), rbio, wbio);
 
-								ioContext->ssl = ssl;
+								ioContext->ssl = std::move(ssl);
 
 								ioContext->bioAddr = BIO_ADDR_new();
 
-								if (BIO_dgram_set_peer(SSL_get_wbio(ioContext->ssl), (struct sockaddr*)&clientAddr) <= 0) {
+								if (BIO_dgram_set_peer(
+									SSL_get_wbio(ioContext->ssl->getSsl()), (struct sockaddr*)&clientAddr) <= 0) {
 									LIB_MSG_ERR("Failed to set peer address");
 								}
 							}
 
-							ret = DTLSv1_listen(ioContext->ssl, ioContext->bioAddr);
+							ret = DTLSv1_listen(ioContext->ssl->getSsl(), ioContext->bioAddr);
 							if (ret > 0) {
 								ioContext->connectionState = IoContext::CONNECTION_STATE::ACCEPT;
 							}
 							else if (ret < 0) {
-								ret = SSL_get_error(ioContext->ssl, ret);
+								ret = SSL_get_error(ioContext->ssl->getSsl(), ret);
 								if (ret != SSL_ERROR_WANT_READ && ret != SSL_ERROR_WANT_WRITE) {
 									LIB_MSG_WARN("Error during DTLSv1_Listen, drop connection to {} with err {}",
 										clientAddr.toString(), ret);
@@ -299,7 +270,7 @@ namespace netcoap {
 
 					case IoContext::CONNECTION_STATE::ACCEPT: {
 
-						ret = SSL_accept(ioContext->ssl);
+						ret = SSL_accept(ioContext->ssl->getSsl());
 						if (ret > 0) {
 							ioContext->connectionState = IoContext::CONNECTION_STATE::COMPLETED;
 							m_ioResp.clientAddr = clientAddr;
@@ -308,7 +279,7 @@ namespace netcoap {
 							m_ioResp.statusRet = ServerIoResponse::STATUS_RETURN::NEW_CONNECTION;
 						}
 						else {
-							ret = SSL_get_error(ioContext->ssl, ret);
+							ret = SSL_get_error(ioContext->ssl->getSsl(), ret);
 							if (ret != SSL_ERROR_WANT_READ && ret != SSL_ERROR_WANT_WRITE) {
 								LIB_MSG_WARN("Error during SSL_accept, drop connection to {}", clientAddr.toString());
 								m_ioContextMap.erase(key);
@@ -323,19 +294,13 @@ namespace netcoap {
 						
 						ioBuf->clientAddr = clientAddr;
 
-						size_t readBytes = 0;
-						ret = SSL_read_ex(ioContext->ssl, ioBuf->buf.data(), bytesRcv, &readBytes);
-						if (ret <= 0) {
-							m_ioResp.statusRet = ServerIoResponse::STATUS_RETURN::NONE;
-
-							ret = SSL_get_error(ioContext->ssl, ret);
-							LIB_MSG_WARN("Unable to read from {} with err {}", clientAddr.toString(), ret);
-						}
-						else {
-							ioBuf->buf.resize(readBytes);
+						if (ioContext->ssl->read(ioBuf->buf) > 0) {
 							m_ioResp.clientAddr = clientAddr;
 							m_ioResp.statusRet = ServerIoResponse::STATUS_RETURN::CLIENT_HAS_DATA;
 							ioContext->inpQ.push(ioBuf);
+						}
+						else {
+							m_ioResp.statusRet = ServerIoResponse::STATUS_RETURN::NONE;
 						}
 					break;
 				}

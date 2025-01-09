@@ -44,50 +44,22 @@ namespace netcoap {
 			UdpClientDtlsIo() {}
 
 			virtual ~UdpClientDtlsIo() {
-				if (m_ssl) {
-					SSL_free(m_ssl);
-				}
 				if (m_sslCtx) {
 					SSL_CTX_free(m_sslCtx);
 				}
 			}
 
 			InpOutpResponse* getData() {
-				int ret;
-				IpAddress serverAddr; int serverLen = sizeof(serverAddr);
 
 				m_mon.monitorAll();
 
 				if (!m_mon.getReadState(*m_sock.get())->isReadable()) {
 					return nullptr;
 				}
+
 				shared_ptr<IoBuf> ioBuf(new IoBuf());
 				ioBuf->buf.resize(COAP_MAX_RX_SIZE);
-				size_t readBytes = 0;
-					
-				ret = SSL_read_ex(m_ssl, ioBuf->buf.data(), COAP_MAX_RX_SIZE, &readBytes);
-				if (ret <= 0) {
-
-					unsigned long error_code = ERR_get_error();
-					char error_msg[120];
-					ERR_error_string_n(error_code, error_msg, sizeof(error_msg));
-					printf("SSL Error: %s\n", error_msg);
-
-					ret = SSL_get_error(m_ssl, ret);
-					if (ret == SSL_ERROR_WANT_READ) {
-						printf("SSL_read would block, need to wait for more data\n");
-					}
-					else {
-						fprintf(stderr, "SSL_read failed with error %d\n", ret);
-						ERR_print_errors_fp(stderr);
-					}
-					LIB_MSG_WARN("Unable to read from {} with err {}", serverAddr.toString(), ret);
-					ERR_print_errors_fp(stderr);
-				}
-				else {
-
-					ioBuf->buf.resize(readBytes);
-					ioBuf->clientAddr = serverAddr;
+				if (m_ssl->read(ioBuf->buf) > 0) {
 					m_inpQ.push(ioBuf);
 				}
 
@@ -111,36 +83,7 @@ namespace netcoap {
 						break;
 					}
 
-					int retryCount = 0;
-					size_t totalSent = 0;
-					size_t bytesSent;
-					int errNo = 0;
-					while ((totalSent < buf->buf.length()) && (retryCount < MAX_RETRIES)) {
-						errNo = SSL_write_ex(
-							m_ssl,
-							(buf->buf.data() + totalSent),
-							(buf->buf.length() - totalSent),
-							&bytesSent);
-
-						if (errNo > 0) {
-							totalSent += bytesSent;
-							retryCount = 0;
-							continue;
-						}
-
-						errNo = SSL_get_error(m_ssl, errNo);
-						if ((errNo != SSL_ERROR_WANT_READ) && (errNo != SSL_ERROR_WANT_WRITE)) {
-							retryCount++;
-						}
-						unsigned long error_code = ERR_get_error();
-						char error_msg[120];
-						ERR_error_string_n(error_code, error_msg, sizeof(error_msg));
-						LIB_MSG_ERR("SSL Error: {}", error_msg);
-						continue;
-					}
-
-					if (totalSent != buf->buf.length()) {
-						LIB_MSG_ERR("Unable to send message cause err {}\n", errNo);
+					if (m_ssl->write(buf->buf) < 0) {
 						m_outpQ.pushFront(buf);
 					}
 				}
@@ -168,12 +111,12 @@ namespace netcoap {
 					LIB_MSG_ERR_THROW_EX("Unable to create BIO with BIO_new_dgram");
 				}
 
-				SSL_set_bio(m_ssl, bio, bio);
+				SSL_set_bio(m_ssl->getSsl(), bio, bio);
 
 				while (true) {
-					int retVal = SSL_connect(m_ssl);
+					int retVal = SSL_connect(m_ssl->getSsl());
 					if (retVal <= 0) {
-						retVal = SSL_get_error(m_ssl, retVal);
+						retVal = SSL_get_error(m_ssl->getSsl(), retVal);
 						if ((retVal != SSL_ERROR_WANT_READ) && (retVal != SSL_ERROR_WANT_WRITE)) {
 							LIB_MSG_ERR("Unable to connect, err {}", retVal);
 #ifdef _WIN32
@@ -237,13 +180,13 @@ namespace netcoap {
 				m_mon.addRead(*m_sock.get());
 				m_mon.addWrite(*m_sock.get());
 
-				m_ssl = SSL_new(m_sslCtx);
+				m_ssl = make_unique<Ssl>(m_sslCtx);
 			}
 
 		private:
 
 			SSL_CTX* m_sslCtx = nullptr;
-			SSL* m_ssl = nullptr;
+			unique_ptr<Ssl> m_ssl = nullptr;
 			unique_ptr<Socket> m_sock;
 			SocketMonitor m_mon{ chrono::microseconds(100) };
 			SyncQ<shared_ptr<IoBuf>> m_inpQ;

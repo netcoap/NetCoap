@@ -11,6 +11,7 @@ target_sources(Toolbox PUBLIC FILE_SET CXX_MODULES FILES
     SocketMonitor.ixx
     Socket.ixx
     SyncQ.ixx
-    Toolbox.ixx)
+    Toolbox.ixx
+    Ssl.ixx)
 
 target_include_directories(Toolbox PUBLIC ..)

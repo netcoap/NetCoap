@@ -53,8 +53,8 @@ namespace netcoap {
 				if (optDeltaOrLen > 268) { // 2 bytes delta extended
 					optDeltaOrLen -= 269;
 					optDeltaOrLen = htons(optDeltaOrLen);
-					str.push_back(optDeltaOrLen & 0xFF);
 					str.push_back((optDeltaOrLen >> 8) & 0xFF);
+					str.push_back(optDeltaOrLen & 0xFF);
 
 					optDeltaOrLen = 14;
 				}
@@ -78,7 +78,7 @@ namespace netcoap {
 						break;
 
 					case 14:
-						optDeltaOrLen = (str[strIndex] | (str[strIndex + 1] << 8)) & 0xFFFF;
+						optDeltaOrLen = ((str[strIndex] << 8) | str[strIndex + 1]) & 0xFFFF;
 						optDeltaOrLen = ntohs(optDeltaOrLen);
 						strIndex += 2;
 						optDeltaOrLen += 269;
@@ -429,10 +429,10 @@ namespace netcoap {
 				BLOCK2 = 23, BLOCK1 = 27, SIZE2 = 28, PROXY_URI = 35, PROXY_SCHEME = 39, SIZE1 = 60, REQUEST_TAG = 292
 			};
 
-			static char DELIM_PATH;
-			static char DELIM_QUERY;
-			static char DELIM_IF_MATCH;
-			static char DELIM_ETAG;
+			static const char DELIM_PATH;
+			static const char DELIM_QUERY;
+			static const char DELIM_IF_MATCH;
+			static const char DELIM_ETAG;
 
 			Option() {}
 			virtual ~Option() {}
@@ -600,10 +600,10 @@ namespace netcoap {
 		};
 
 
-		char Option::DELIM_PATH = '/';
-		char Option::DELIM_QUERY = '&';
-		char Option::DELIM_IF_MATCH = ';';
-		char Option::DELIM_ETAG = ';';
+		const char Option::DELIM_PATH = '/';
+		const char Option::DELIM_QUERY = '&';
+		const char Option::DELIM_IF_MATCH = ';';
+		const char Option::DELIM_ETAG = ';';
 
 	}
 }

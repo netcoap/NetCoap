@@ -44,6 +44,8 @@ namespace netcoap {
 				registerResourceCb(WELL_KNOWN_CORE, bind(
 					&Broker::handleWellKnownCoreCb, this,
 					placeholders::_1, placeholders::_2));
+
+				m_io.init(m_cfg);
 			}
 
 			void runSession(Session* sess) {
@@ -143,8 +145,6 @@ namespace netcoap {
 			}
 
 			void run() {
-				
-				m_io.init(m_cfg);
 
 				while (true) {
 
