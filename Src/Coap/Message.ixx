@@ -357,7 +357,7 @@ namespace netcoap {
 				str.push_back(static_cast<uint8_t>(m_code));
 
 				uint16_t mid = htons(m_msgId);
-				str.push_back(mid & 0xFF); str.push_back((mid >> 8) & 0xFF);
+				str.push_back((mid >> 8) & 0xFF); str.push_back(mid & 0xFF);
 
 				str.append(m_token);
 
@@ -390,10 +390,10 @@ namespace netcoap {
 				m_type = static_cast<TYPE>((verTypeTokLen >> 4) & 0x03);
 				uint8_t tokenLen = verTypeTokLen & 0x0F;
 
-				m_code = static_cast<CODE>(str[strIndex]);
+				m_code = static_cast<CODE>((uint8_t) str[strIndex]);
 				strIndex++;
 
-				uint16_t mid = (str[strIndex] & 0xFF) | ((str[strIndex + 1] << 8) & 0xFF00);
+				uint16_t mid = (((str[strIndex] << 8) & 0xFF00) | (str[strIndex + 1] & 0xFF));
 				strIndex += 2;
 				m_msgId = ntohs(mid);
 
