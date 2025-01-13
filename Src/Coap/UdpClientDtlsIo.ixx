@@ -49,58 +49,32 @@ namespace netcoap {
 				}
 			}
 
-			InpOutpResponse* getData() {
+			int read(shared_ptr<IoBuf>& ioBuf, void* ctx) {
 
 				m_mon.monitorAll();
 
 				if (!m_mon.getReadState(*m_sock.get())->isReadable()) {
-					return nullptr;
-				}
-
-				shared_ptr<IoBuf> ioBuf(new IoBuf());
-				ioBuf->buf.resize(COAP_MAX_RX_SIZE);
-				if (m_ssl->read(ioBuf->buf) > 0) {
-					m_inpQ.push(ioBuf);
-				}
-
-				return nullptr;
-			}
-
-			void outDataToNet() {
-				static const int MAX_RETRIES = 3;
-				shared_ptr<IoBuf> buf = nullptr; bool success;
-
-				while (true) {
-
-					m_mon.monitorAll();
-
-					if (!m_mon.getWriteState(*m_sock.get())->isWritable()) {
-						return;
-					}
-
-					success = m_outpQ.pop(buf);
-					if (!success) {
-						break;
-					}
-
-					if (m_ssl->write(buf->buf) < 0) {
-						m_outpQ.pushFront(buf);
-					}
-				}
-			}
-
-			int read(shared_ptr<IoBuf>& buf, void* ctx) {
-				if (m_inpQ.pop(buf)) {
-					return buf->buf.length();
-				}
-				else {
 					return 0;
 				}
+
+				ioBuf = make_shared<IoBuf>();
+				ioBuf->buf.resize(COAP_MAX_RX_SIZE);
+				return m_ssl->read(ioBuf->buf);
 			}
 
-			int write(shared_ptr<IoBuf> buf, void* ctx) {
-				m_outpQ.push(buf);
-				return (int)buf->buf.length();
+			bool isWritable() {
+
+				m_mon.monitorAll();
+
+				if (!m_mon.getWriteState(*m_sock.get())->isWritable()) {
+					return 0;
+				}
+
+			}
+
+			int write(shared_ptr<IoBuf> ioBuf, void* ctx) {
+
+				return m_ssl->write(ioBuf->buf);
 			}
 
 			bool connect(void* ctx) {
@@ -189,8 +163,6 @@ namespace netcoap {
 			unique_ptr<Ssl> m_ssl = nullptr;
 			unique_ptr<Socket> m_sock;
 			SocketMonitor m_mon{ chrono::microseconds(100) };
-			SyncQ<shared_ptr<IoBuf>> m_inpQ;
-			SyncQ<shared_ptr<IoBuf>> m_outpQ;
 		};
 	}
 }

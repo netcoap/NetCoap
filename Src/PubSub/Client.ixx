@@ -354,8 +354,6 @@ namespace netcoap {
 				}
 
 				while (!m_stop) {
-					
-					m_io.getData();
 
 					shared_ptr<IoBuf> buf;
 					if (m_io.read(buf, nullptr) > 0) {
@@ -373,8 +371,6 @@ namespace netcoap {
 					else {
 						retryXmit();
 					}
-
-					m_io.outDataToNet();
 				}
 
 				m_state = STATE::NONE;
@@ -473,7 +469,7 @@ namespace netcoap {
 
 			void outputChannel() {
 
-				if (m_topicChanQ.empty()) {
+				if (m_topicChanQ.empty() || !m_io.isWritable()) {
 					return;
 				}
 
