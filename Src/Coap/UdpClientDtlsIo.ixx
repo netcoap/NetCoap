@@ -67,9 +67,10 @@ namespace netcoap {
 				m_mon.monitorAll();
 
 				if (!m_mon.getWriteState(*m_sock.get())->isWritable()) {
-					return 0;
+					return false;
 				}
 
+				return true;
 			}
 
 			int write(shared_ptr<IoBuf> ioBuf, void* ctx) {

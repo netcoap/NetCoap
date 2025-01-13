@@ -87,6 +87,10 @@ namespace netcoap {
 				return -1;
 			}
 
+			virtual bool isWritable() {
+				return false;
+			}
+			
 		protected:
 
 			inline void setInitOnce(bool done) const {
