@@ -76,6 +76,14 @@ namespace netcoap {
 				m_topicData = topicData;
 			}
 
+			inline bool isWait4Resp() {
+				return m_isWait4Resp;
+			}
+
+			inline void setWait4Resp(bool wait4Resp) {
+				m_isWait4Resp = wait4Resp;
+			}
+
 		private:
 			Block1Xfer m_block1Xfer;
 			Block2Xfer m_block2Xfer;
@@ -85,6 +93,7 @@ namespace netcoap {
 			shared_ptr<Message> m_msg;
 
 			string m_topicData = TOPIC_CONTROL;
+			bool m_isWait4Resp = false;
 		};
 
 		const string TokenContext::TOPIC_CONTROL = "TOPIC_CONTROL_DATA";

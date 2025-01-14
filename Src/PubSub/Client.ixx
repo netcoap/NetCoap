@@ -427,12 +427,13 @@ namespace netcoap {
 						shared_ptr<Message> blockMsg = tokenCtx->getBlock1Xfer().rcv(resp); // Block 1 more transfer
 						if (blockMsg) {
 							tokenCtx->setMsg(blockMsg);
-							topicQ->pushFront(tokenCtx);
+							tokenCtx->setWait4Resp(false);
 
 							return;
 						}
 						else {
 							blockMsg = resp;
+							topicQ->pop(tokenCtx);
 						}
 					}
 
@@ -491,12 +492,23 @@ namespace netcoap {
 					shared_ptr<TokenContext> nxtTokenCtx;
 					
 					if (topicIter->second->pop(tokenCtx)) {
+						if (tokenCtx->isWait4Resp()) {
+							topicIter->second->pushFront(tokenCtx);
+							continue;
+						}
+
 						break;
 					}
 				}
 
 				shared_ptr<Message> msg = tokenCtx->getMsg();
 				msg = tokenCtx->getBlock1Xfer().xfer(msg);
+
+				if (msg->getOption(Option::NUMBER::BLOCK1)) {
+					SyncQ<shared_ptr<TokenContext>>* topicQ = m_topicChanQ[tokenCtx->getTopicData()].get();
+					tokenCtx->setWait4Resp(true);
+					topicQ->pushFront(tokenCtx);
+				}
 
 				tokenCtx->getBlock2Xfer().saveReq(msg);
 
