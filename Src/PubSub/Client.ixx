@@ -25,7 +25,6 @@ import Coap;
 import Toolbox;
 import :TopicCfgResource;
 import :Broker;
-import :TokenContext;
 
 using namespace std;
 using namespace chrono;
