@@ -110,7 +110,7 @@
       <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>C:\Projects\OpenSSL\Dist-3.4.0\include;C:\Projects\NetCoap\Src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Projects\OpenSSL\Dist-3.4.0\include;..\..\Src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -144,6 +144,7 @@
     <ClCompile Include="..\..\Src\Coap\Message.ixx" />
     <ClCompile Include="..\..\Src\Coap\Option.ixx" />
     <ClCompile Include="..\..\Src\Coap\Ping.ixx" />
+    <ClCompile Include="..\..\Src\Coap\TokenContext.ixx" />
     <ClCompile Include="..\..\Src\Coap\UdpClientDtlsIo.ixx" />
     <ClCompile Include="..\..\Src\Coap\UdpServerDtlsIo.ixx" />
     <ClCompile Include="..\..\Src\Coap\Url.ixx" />

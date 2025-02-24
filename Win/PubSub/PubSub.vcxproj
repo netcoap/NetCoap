@@ -106,7 +106,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\Projects\OpenSSL\Dist-3.4.0\include;C:\Projects\NetCoap\Src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Projects\OpenSSL\Dist-3.4.0\include;..\..\Src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
@@ -136,7 +136,6 @@
     <ClCompile Include="..\..\Src\PubSub\Broker.ixx" />
     <ClCompile Include="..\..\Src\PubSub\BrokerIf.ixx" />
     <ClCompile Include="..\..\Src\PubSub\Client.ixx" />
-    <ClCompile Include="..\..\Src\PubSub\TokenContext.ixx" />
     <ClCompile Include="..\..\Src\PubSub\CollectionResource.ixx" />
     <ClCompile Include="..\..\Src\PubSub\PubSub.ixx" />
     <ClCompile Include="..\..\Src\PubSub\Session.ixx" />

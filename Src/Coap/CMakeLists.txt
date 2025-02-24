@@ -12,7 +12,8 @@ target_sources(Coap PUBLIC FILE_SET CXX_MODULES FILES
     Coap.ixx
     Message.ixx
     UdpClientDtlsIo.ixx
-    Ping.ixx)
+    Ping.ixx
+    TokenContext.ixx)
 
 target_include_directories(Coap PUBLIC
     ..
